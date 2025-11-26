@@ -3,712 +3,754 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>เกมยิงสายฟ้า - อินทรวิเชียรฉันท์ ๑๑</title>
+    <title>เกมยิงสายฟ้า: อินทรวิเชียรฉันท์ ๑๑</title>
     <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700&family=Prompt:wght@600&display=swap" rel="stylesheet">
     <style>
-        /* === CSS Styling === */
+        /* === CSS Styling: ธีมสวรรค์ === */
         :root {
-            --primary-gold: #FFD700;
-            --secondary-blue: #0077BE;
-            --danger-red: #FF4136;
-            --success-green: #2ECC40;
+            --gold: #FFD700;
+            --gold-light: #FFF8DC;
+            --sky-blue: #87CEEB;
+            --deep-blue: #0077BE;
         }
 
         body {
             margin: 0;
-            padding: 0;
             overflow: hidden;
-            background-color: #1a1a1a;
+            background-color: #000;
             font-family: 'Prompt', sans-serif;
-            touch-action: none; /* ป้องกันการ zoom/scroll บนมือถือ */
+            touch-action: none;
         }
 
         #game-container {
             position: relative;
             width: 100vw;
             height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            background: linear-gradient(to bottom, #0f2027, #203a43, #2c5364);
+            background: linear-gradient(to bottom, #4facfe 0%, #00f2fe 100%);
+            overflow: hidden;
         }
 
         canvas {
-            box-shadow: 0 0 20px rgba(0,0,0,0.5);
-            max-width: 100%;
-            max-height: 100%;
+            display: block;
+            width: 100%;
+            height: 100%;
         }
 
-        /* UI Overlays */
+        /* UI Overlay */
         .ui-layer {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            pointer-events: none; /* ให้คลิกทะลุไปที่ Canvas ได้ */
+            pointer-events: none;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
         }
 
-        .hud-top {
-            display: flex;
-            justify-content: space-between;
-            padding: 20px;
-            color: white;
-            text-shadow: 2px 2px 4px #000;
-            font-size: 1.2rem;
-        }
-
-        .score-box span, .time-box span {
-            color: var(--primary-gold);
-            font-weight: bold;
-            font-size: 1.5rem;
-        }
-
-        /* Ammo Switcher UI */
-        .ammo-indicator {
-            position: absolute;
-            bottom: 20px;
-            left: 20px;
-            pointer-events: auto;
-            background: rgba(0, 0, 0, 0.7);
+        /* Mission Panel */
+        .mission-panel {
+            background: rgba(255, 255, 255, 0.9);
+            margin: 10px auto;
             padding: 10px 20px;
-            border-radius: 30px;
-            border: 2px solid white;
-            color: white;
-            cursor: pointer;
+            border-radius: 15px;
+            border: 3px solid var(--gold);
             text-align: center;
-            transition: transform 0.1s;
-        }
-        
-        .ammo-indicator:active {
-            transform: scale(0.95);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            pointer-events: auto;
+            min-width: 300px;
         }
 
-        .ammo-karu { border-color: var(--danger-red); color: var(--danger-red); }
-        .ammo-lahu { border-color: var(--success-green); color: var(--success-green); }
+        .mission-title {
+            color: var(--deep-blue);
+            font-size: 1.2rem;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
 
-        /* Start Screen & Modal */
-        #start-screen, #game-over-screen, #rules-modal {
+        .mission-timer {
+            height: 8px;
+            background: #ddd;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 5px;
+        }
+
+        .mission-bar {
+            height: 100%;
+            background: #ff4136; /* สีแดงเริ่ม */
+            width: 100%;
+            transition: width 0.1s linear;
+        }
+
+        .score-display {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: white;
+            font-size: 1.5rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            background: rgba(0,0,0,0.3);
+            padding: 5px 15px;
+            border-radius: 20px;
+        }
+
+        .btn-end-game {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            pointer-events: auto;
+            background: #ff4136;
+            color: white;
+            border: 2px solid white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-family: 'Prompt', sans-serif;
+            font-size: 1rem;
+        }
+
+        /* Login & Screens */
+        .screen {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.85);
+            background: rgba(255, 255, 255, 0.95); /* พื้นหลังขาวนวล */
+            background-image: url('https://nonthaphathr.github.io/uploadimg/bgindra.png');
+            background-size: cover;
+            background-position: center;
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            color: white;
             z-index: 10;
             pointer-events: auto;
         }
 
-        h1 {
-            color: var(--primary-gold);
-            font-size: 3rem;
-            margin-bottom: 10px;
-            text-shadow: 0 0 10px var(--primary-gold);
+        .screen-content {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
             text-align: center;
+            border: 4px solid var(--gold);
+            max-width: 90%;
+            width: 400px;
+            animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+            100% { transform: translateY(0px); }
+        }
+
+        h1 {
+            color: var(--deep-blue);
+            margin: 0 0 20px 0;
+            text-shadow: 1px 1px 0px var(--gold);
+        }
+
+        input, select {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-family: 'Sarabun', sans-serif;
+            font-size: 1rem;
+            box-sizing: border-box;
         }
 
         .btn {
-            background: var(--primary-gold);
-            color: #000;
+            background: linear-gradient(45deg, var(--gold), #FFA500);
             border: none;
-            padding: 15px 40px;
-            font-size: 1.5rem;
-            border-radius: 50px;
-            cursor: pointer;
-            font-family: 'Prompt', sans-serif;
-            margin: 10px;
-            transition: all 0.2s;
-            box-shadow: 0 0 15px rgba(255, 215, 0, 0.5);
-        }
-
-        .btn:hover {
-            transform: scale(1.1);
-            background: #fff;
-        }
-
-        .btn-small {
-            padding: 8px 20px;
-            font-size: 1rem;
-            background: var(--secondary-blue);
+            padding: 12px 30px;
+            font-size: 1.2rem;
+            border-radius: 30px;
             color: white;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 5px 15px rgba(255, 165, 0, 0.4);
+            transition: transform 0.2s;
+            width: 100%;
+            margin-top: 10px;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
         }
 
-        .rules-content {
-            background: white;
-            color: black;
-            padding: 30px;
-            border-radius: 10px;
-            max-width: 600px;
-            width: 90%;
-            font-family: 'Sarabun', sans-serif;
-            line-height: 1.6;
-        }
-        
-        .rules-content h2 { color: var(--secondary-blue); }
-        .tag-karu { color: var(--danger-red); font-weight: bold; }
-        .tag-lahu { color: var(--success-green); font-weight: bold; }
-
+        .btn:active { transform: scale(0.95); }
+        .btn-secondary { background: #ccc; color: #555; }
         .hidden { display: none !important; }
 
-        #loading {
+        /* Cloud Animation Decoration */
+        .cloud {
             position: absolute;
-            color: white;
-            font-size: 2rem;
+            background: white;
+            border-radius: 50%;
+            opacity: 0.8;
+            z-index: 1;
         }
+
     </style>
 </head>
 <body>
 
 <div id="game-container">
-    <div id="loading">กำลังโหลดภาพ...</div>
     <canvas id="gameCanvas"></canvas>
 
-    <div class="ui-layer" id="ui-layer">
-        <div class="hud-top">
-            <div class="score-box">คะแนน: <span id="score">0</span> (Level <span id="level">1</span>)</div>
-            <div class="time-box">เวลา: <span id="time">60</span> วินาที</div>
-        </div>
-        
-        <div class="ammo-indicator ammo-karu" id="ammo-switch">
-            <div>กระสุนปัจจุบัน</div>
-            <div style="font-size: 1.5rem; font-weight: bold;" id="ammo-text">ครุ (เสียงหนัก)</div>
-            <div style="font-size: 0.8rem;">(กด Spacebar หรือคลิกเพื่อเปลี่ยน)</div>
-        </div>
-    </div>
+    <div class="ui-layer hidden" id="game-ui">
+        <div class="score-display">คะแนน: <span id="score-val">0</span></div>
+        <button class="btn-end-game" onclick="endGame()">จบเกม</button>
 
-    <div id="start-screen">
-        <h1>อินทรวิเชียรฉันท์ ๑๑<br><span style="font-size:1.5rem">ผู้พิชิตสายฟ้า</span></h1>
-        <p>ยิงลูกบอลคำให้ตรงกับประเภทของกระสุน (ครุ/ลหุ)</p>
-        <button class="btn" onclick="startGame()">เริ่มเกม</button>
-        <button class="btn btn-small" onclick="showRules()">วิธีเล่น & ความรู้</button>
-    </div>
-
-    <div id="rules-modal" class="hidden">
-        <div class="rules-content">
-            <h2>หลักการจำแนกคำ (อินทรวิเชียรฉันท์ ๑๑)</h2>
-            <p>ภารกิจของคุณคือช่วยพระอินทร์ยิงลูกบอลคำที่ตกลงมา โดยต้องเลือกใช้กระสุนให้ถูกประเภท</p>
-            <ul>
-                <li><span class="tag-karu">ครุ (Heavy):</span> พยางค์ที่มีตัวสะกด หรือ สระเสียงยาว (เช่น กาม, บท, โลก)</li>
-                <li><span class="tag-lahu">ลหุ (Light):</span> พยางค์ที่<b>ไม่มี</b>ตัวสะกด และเป็นสระเสียงสั้น (เช่น ฤ, ธุ, ระ)</li>
-            </ul>
-            <hr>
-            <h3>วิธีเล่น</h3>
-            <p>1. ขยับเมาส์เพื่อเล็ง<br>
-            2. <b>คลิกซ้าย</b> หรือ <b>แตะหน้าจอ</b> เพื่อยิง<br>
-            3. <b>กด Spacebar</b> หรือ <b>คลิกที่ปุ่มด้านล่างซ้าย</b> เพื่อเปลี่ยนกระสุน (ครุ/ลหุ)<br>
-            4. ยิงให้ถูกคู่: กระสุนครุ ยิงลูกบอลครุ, กระสุนลหุ ยิงลูกบอลลหุ</p>
-            <div style="text-align: center;">
-                <button class="btn btn-small" onclick="hideRules()">เข้าใจแล้ว</button>
+        <div class="mission-panel">
+            <div class="mission-title">ภารกิจ: <span id="mission-text">กำลังโหลด...</span></div>
+            <div style="display: flex; justify-content: space-around; font-size: 1.1rem;">
+                <span style="color: #d32f2f;">ครุ: <span id="mission-karu">0/0</span></span>
+                <span style="color: #388e3c;">ลหุ: <span id="mission-lahu">0/0</span></span>
+            </div>
+            <div class="mission-timer">
+                <div class="mission-bar" id="mission-time-bar"></div>
             </div>
         </div>
     </div>
 
-    <div id="game-over-screen" class="hidden">
-        <h1>จบเกม!</h1>
-        <p>คะแนนรวม: <span id="final-score" style="color: var(--primary-gold); font-size: 2rem; font-weight: bold;">0</span></p>
-        <p>ความแม่นยำ: <span id="final-accuracy">0</span>%</p>
-        <button class="btn" onclick="startGame()">เล่นอีกครั้ง</button>
+    <div id="login-screen" class="screen">
+        <div class="screen-content">
+            <h1>ลงทะเบียนผู้พิชิต</h1>
+            <input type="text" id="p-name" placeholder="ชื่อ-นามสกุล">
+            <div style="display: flex; gap: 10px;">
+                <input type="number" id="p-number" placeholder="เลขที่">
+                <input type="text" id="p-class" placeholder="ชั้น (เช่น 6/1)">
+            </div>
+            <button class="btn" onclick="submitRegistration()">ลงชื่อเข้าใช้</button>
+            <button class="btn btn-secondary" onclick="startGuest()">ทดลองเล่น (ไม่บันทึก)</button>
+        </div>
+    </div>
+
+    <div id="intro-screen" class="screen hidden">
+        <div class="screen-content">
+            <h2>สวัสดีคุณ <span id="display-name" style="color:var(--deep-blue)"></span></h2>
+            <p>ภารกิจของคุณคือ ยิงคำให้ครบตามที่กำหนด<br>ภายในเวลาที่จำกัด!</p>
+            <hr>
+            <p style="font-size: 0.9rem; color: #666;">
+                <b>คำแนะนำ:</b><br>
+                ครุ = เสียงหนัก/มีตัวสะกด/สระยาว<br>
+                ลหุ = เสียงเบา/ไม่มีตัวสะกด/สระสั้น
+            </p>
+            <button class="btn" onclick="startGame()">เริ่มภารกิจ!</button>
+        </div>
+    </div>
+
+    <div id="game-over-screen" class="screen hidden">
+        <div class="screen-content">
+            <h1 style="color: var(--deep-blue);">สรุปผลงาน</h1>
+            <p>ผู้เล่น: <span id="end-name"></span></p>
+            <div style="font-size: 3rem; color: var(--gold); font-weight: bold; margin: 10px 0;">
+                <span id="end-score">0</span>
+            </div>
+            <p>คะแนนสูงสุด</p>
+            <div style="display: flex; gap: 10px;">
+                <button class="btn" onclick="resetGame()">เล่นใหม่อีกครั้ง</button>
+            </div>
+        </div>
     </div>
 </div>
 
 <script>
-    /* === 1. การตั้งค่าและตัวแปรหลัก (Global Variables) === */
+    /* === 1. Configuration & Assets === */
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
-    
-    // ตั้งค่าขนาด Canvas เป็น 800x600 (Logical Resolution)
-    const GAME_WIDTH = 800;
-    const GAME_HEIGHT = 600;
-    canvas.width = GAME_WIDTH;
-    canvas.height = GAME_HEIGHT;
 
-    // คำศัพท์
-    const KARU_WORDS = ['กาม', 'กาน', 'บาท', 'โลก', 'ธรรม', 'มาร', 'กาล', 'ธาตุ', 'นาค', 'ราช', 'โทษ', 'ศาสตร์', 'เกียรติ', 'ภพ', 'พักตร์'];
-    const LAHU_WORDS = ['ฤดิ', 'สุระ', 'นะ', 'ตะ', 'ละ', 'วะ', 'ระ', 'ก็', 'ดี', 'จะ', 'ปะ', 'ทิ', 'พุ', 'ธุ', 'สิ'];
+    // จัดการขนาด Canvas แบบ Fullscreen
+    function resizeCanvas() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
 
-    // รูปภาพ (Asset URLs)
+    // คลังคำศัพท์
+    const KARU_WORDS = ['กาม', 'กาน', 'บาท', 'โลก', 'ธรรม', 'มาร', 'กาล', 'ธาตุ', 'นาค', 'ราช', 'โทษ', 'ศาสตร์', 'เกียรติ', 'ภพ', 'พักตร์', 'อินทร์', 'จันทร์', 'สูรย์'];
+    const LAHU_WORDS = ['ฤดิ', 'สุระ', 'นะ', 'ตะ', 'ละ', 'วะ', 'ระ', 'ก็', 'ดี', 'จะ', 'ปะ', 'ทิ', 'พุ', 'ธุ', 'สิ', 'มิ', 'นุ', 'ลุ'];
+
+    // รูปภาพ (แก้ไข URL สลับกันเรียบร้อยแล้ว)
     const ASSETS = {
         bg: 'https://nonthaphathr.github.io/uploadimg/bgindra.png',
         indraIdle: 'https://nonthaphathr.github.io/uploadimg/indraremove1.png',
-        indraThrow: 'https://nonthaphathr.github.io/uploadimg/thunderremove1.png',
-        lightning: 'https://nonthaphathr.github.io/uploadimg/indraremove2.png'
+        indraThrow: 'https://nonthaphathr.github.io/uploadimg/indraremove2.png', // ท่าเขวี้ยง (แก้ไขแล้ว)
+        lightning: 'https://nonthaphathr.github.io/uploadimg/thunderremove1.png', // กระสุนสายฟ้า (แก้ไขแล้ว)
+        itemBox: 'https://cdn-icons-png.flaticon.com/512/1139/1139982.png' // รูปกล่องของขวัญ (ใช้ไอคอนฟรี)
     };
 
-    // โหลดรูปภาพ
     const images = {};
     let imagesLoaded = 0;
-    
-    function loadImages(callback) {
+    function loadImages(cb) {
         const keys = Object.keys(ASSETS);
-        keys.forEach(key => {
+        keys.forEach(k => {
             const img = new Image();
-            img.src = ASSETS[key];
+            img.src = ASSETS[k];
             img.onload = () => {
                 imagesLoaded++;
-                if (imagesLoaded === keys.length) callback();
+                if(imagesLoaded === keys.length) cb();
             };
-            images[key] = img;
+            images[k] = img;
         });
     }
 
-    /* === 2. ระบบเกม (Game Objects) === */
-
-    // สถานะเกม
-    let gameState = 'menu'; // menu, playing, gameover
+    /* === 2. Game Variables === */
+    let gameState = 'login'; // login, intro, playing, gameover
     let score = 0;
-    let timeLeft = 60;
-    let level = 1;
-    let shotsFired = 0;
-    let shotsHit = 0;
-    let lastTime = 0;
-    let spawnTimer = 0;
-    let spawnInterval = 2000; // มิลลิวินาที
-
-    // ตัวแปรผู้เล่น
-    let player = {
-        x: GAME_WIDTH / 2,
-        y: GAME_HEIGHT - 130, // ตำแหน่งพระอินทร์
-        width: 150,
-        height: 150,
-        angle: -Math.PI / 2, // มุมการยิง (เริ่มที่ชี้ขึ้น)
-        isThrowing: false,
-        throwTimer: 0,
-        ammoType: 'karu' // 'karu' หรือ 'lahu'
-    };
-
-    // Arrays เก็บวัตถุในเกม
+    let playerData = { name: 'Guest', number: '', class: '' };
+    
+    // Arrays
     let projectiles = [];
     let enemies = [];
     let particles = [];
+    let items = []; // New: Items
 
-    // อินพุต
-    let mouseX = GAME_WIDTH / 2;
-    let mouseY = GAME_HEIGHT / 2;
+    // Player
+    let player = {
+        x: 0, y: 0, 
+        w: 0, h: 0, // dynamic size
+        angle: -Math.PI/2,
+        isThrowing: false,
+        throwTimer: 0
+    };
 
-    /* === 3. Class Definitions === */
+    // Mission System
+    let mission = {
+        active: false,
+        reqKaru: 0,
+        reqLahu: 0,
+        gotKaru: 0,
+        gotLahu: 0,
+        maxTime: 0,
+        timeLeft: 0
+    };
+
+    // Input
+    let mouseX = 0, mouseY = 0;
+
+    /* === 3. Game Logic Classes === */
 
     class Projectile {
-        constructor(x, y, angle, type) {
+        constructor(x, y, angle) {
             this.x = x;
             this.y = y;
-            this.speed = 10;
+            this.speed = canvas.height * 0.015; // Speed relative to screen height
             this.vx = Math.cos(angle) * this.speed;
             this.vy = Math.sin(angle) * this.speed;
-            this.type = type; // 'karu' หรือ 'lahu'
             this.active = true;
-            this.width = 40;
-            this.height = 80;
             this.angle = angle;
         }
-
         update() {
             this.x += this.vx;
             this.y += this.vy;
-
-            // ลบเมื่อออกนอกจอ
-            if (this.x < 0 || this.x > GAME_WIDTH || this.y < 0 || this.y > GAME_HEIGHT) {
-                this.active = false;
-            }
+            if (this.x < 0 || this.x > canvas.width || this.y < 0 || this.y > canvas.height) this.active = false;
         }
-
-        draw(ctx) {
+        draw() {
             ctx.save();
             ctx.translate(this.x, this.y);
-            ctx.rotate(this.angle + Math.PI/2); // หมุนภาพให้ตรงทิศทาง
-            
-            // วาดแสงรอบๆ ตามประเภทกระสุน
-            ctx.shadowBlur = 15;
-            ctx.shadowColor = this.type === 'karu' ? '#FF4136' : '#2ECC40';
-            
-            ctx.drawImage(images.lightning, -15, -40, 30, 80); // ปรับขนาดภาพสายฟ้า
+            ctx.rotate(this.angle + Math.PI/2);
+            // วาดสายฟ้าขนาดพอดีๆ
+            const size = canvas.width * 0.05; 
+            ctx.drawImage(images.lightning, -size/2, -size, size, size*2);
             ctx.restore();
         }
     }
 
-    class Enemy { // ลูกบอลคำ
+    class Enemy {
         constructor() {
-            this.radius = 35;
-            this.x = Math.random() * (GAME_WIDTH - 100) + 50;
+            this.radius = canvas.width * 0.04; // Responsive size
+            this.x = Math.random() * (canvas.width - this.radius*2) + this.radius;
             this.y = -50;
+            this.speed = (canvas.height * 0.002) + (Math.random() * (canvas.height * 0.003));
             
-            // ความเร็วตาม Level
-            let baseSpeed = 1;
-            if (level === 2) baseSpeed = 2;
-            if (level >= 3) baseSpeed = 3;
-            this.vy = baseSpeed + Math.random();
-
             // สุ่มประเภท
             this.type = Math.random() < 0.5 ? 'karu' : 'lahu';
-            
-            // สุ่มคำ
             if (this.type === 'karu') {
                 this.word = KARU_WORDS[Math.floor(Math.random() * KARU_WORDS.length)];
-                this.color = '#FF4136'; // แดง
+                this.color = '#ff4136'; // Red
             } else {
                 this.word = LAHU_WORDS[Math.floor(Math.random() * LAHU_WORDS.length)];
-                this.color = '#2ECC40'; // เขียว
+                this.color = '#2ecc40'; // Green
             }
-            
             this.active = true;
         }
-
         update() {
-            this.y += this.vy;
-            if (this.y > GAME_HEIGHT + 50) {
-                this.active = false;
-                // ถ้าตกพื้นโดยไม่โดนยิง อาจจะหักคะแนน หรือไม่ก็ได้ (ในที่นี้ไม่หัก แต่เสียโอกาส)
-            }
+            this.y += this.speed;
+            if (this.y > canvas.height + 50) this.active = false;
         }
-
-        draw(ctx) {
+        draw() {
             ctx.beginPath();
-            ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+            ctx.arc(this.x, this.y, this.radius, 0, Math.PI*2);
             ctx.fillStyle = this.color;
-            ctx.shadowBlur = 10;
-            ctx.shadowColor = this.color;
             ctx.fill();
-            ctx.shadowBlur = 0; // reset
             ctx.strokeStyle = "white";
-            ctx.lineWidth = 2;
+            ctx.lineWidth = 3;
             ctx.stroke();
-            ctx.closePath();
-
-            // วาดข้อความ
+            
             ctx.fillStyle = "white";
-            ctx.font = "bold 24px Sarabun";
+            ctx.font = `bold ${this.radius}px Sarabun`;
             ctx.textAlign = "center";
             ctx.textBaseline = "middle";
             ctx.fillText(this.word, this.x, this.y);
         }
     }
 
-    class Particle { // เอฟเฟกต์ระเบิด
-        constructor(x, y, color) {
+    class Item {
+        constructor() {
+            this.x = Math.random() * (canvas.width - 100) + 50;
+            this.y = -50;
+            this.size = canvas.width * 0.06;
+            this.speed = canvas.height * 0.003;
+            // Types: time (นาฬิกา), score (ดาว), bomb (ระเบิด)
+            const r = Math.random();
+            if(r < 0.4) this.type = 'time';      // 40%
+            else if(r < 0.8) this.type = 'score'; // 40%
+            else this.type = 'bomb';              // 20%
+            this.active = true;
+            this.angle = 0;
+        }
+        update() {
+            this.y += this.speed;
+            this.angle += 0.05;
+            if(this.y > canvas.height + 50) this.active = false;
+        }
+        draw() {
+            ctx.save();
+            ctx.translate(this.x, this.y);
+            ctx.rotate(this.angle); // หมุนวิ้งๆ
+            
+            // วาดพื้นหลังไอเทม
+            ctx.fillStyle = 'white';
+            ctx.beginPath();
+            ctx.arc(0,0, this.size/2, 0, Math.PI*2);
+            ctx.fill();
+            ctx.strokeStyle = '#FFD700';
+            ctx.lineWidth = 3;
+            ctx.stroke();
+
+            // วาดสัญลักษณ์
+            ctx.font = `${this.size/1.5}px Arial`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            if(this.type === 'time') ctx.fillText('⏳', 0, 2);
+            else if(this.type === 'score') ctx.fillText('⭐', 0, 2);
+            else ctx.fillText('💣', 0, 2);
+
+            ctx.restore();
+        }
+    }
+
+    class TextEffect {
+        constructor(text, x, y, color) {
+            this.text = text;
             this.x = x;
             this.y = y;
             this.color = color;
-            const angle = Math.random() * Math.PI * 2;
-            const speed = Math.random() * 3 + 1;
-            this.vx = Math.cos(angle) * speed;
-            this.vy = Math.sin(angle) * speed;
-            this.life = 1.0; // ความโปร่งใส
-            this.decay = 0.03;
+            this.life = 1.0;
+            this.vy = -2;
         }
-
         update() {
-            this.x += this.vx;
             this.y += this.vy;
-            this.life -= this.decay;
+            this.life -= 0.02;
         }
-
-        draw(ctx) {
-            ctx.globalAlpha = this.life;
+        draw() {
+            ctx.globalAlpha = Math.max(0, this.life);
             ctx.fillStyle = this.color;
-            ctx.beginPath();
-            ctx.arc(this.x, this.y, 3, 0, Math.PI * 2);
-            ctx.fill();
+            ctx.font = "bold 30px Prompt";
+            ctx.fillText(this.text, this.x, this.y);
             ctx.globalAlpha = 1.0;
         }
     }
 
-    /* === 4. ฟังก์ชันควบคุมหลัก (Main Functions) === */
+    /* === 4. Main System Functions === */
+
+    function submitRegistration() {
+        const name = document.getElementById('p-name').value;
+        const num = document.getElementById('p-number').value;
+        const cls = document.getElementById('p-class').value;
+
+        if(!name) { alert("กรุณากรอกชื่อ"); return; }
+        
+        playerData = { name, number: num, class: cls };
+        document.getElementById('display-name').innerText = name;
+        
+        document.getElementById('login-screen').classList.add('hidden');
+        document.getElementById('intro-screen').classList.remove('hidden');
+    }
+
+    function startGuest() {
+        playerData = { name: 'ผู้เยี่ยมชม', number: '-', class: '-' };
+        document.getElementById('display-name').innerText = 'ผู้เยี่ยมชม';
+        document.getElementById('login-screen').classList.add('hidden');
+        document.getElementById('intro-screen').classList.remove('hidden');
+    }
 
     function startGame() {
-        document.getElementById('start-screen').classList.add('hidden');
+        document.getElementById('intro-screen').classList.add('hidden');
         document.getElementById('game-over-screen').classList.add('hidden');
-        document.getElementById('ui-layer').classList.remove('hidden');
+        document.getElementById('game-ui').classList.remove('hidden');
         
+        resizeCanvas();
         gameState = 'playing';
         score = 0;
-        timeLeft = 60;
-        level = 1;
-        shotsFired = 0;
-        shotsHit = 0;
         
         // Reset Arrays
         projectiles = [];
         enemies = [];
-        particles = [];
+        items = [];
+        particles = []; // Reuse for text effects
 
-        updateHUD();
-        
-        // เริ่มจับเวลา
-        if (window.gameTimer) clearInterval(window.gameTimer);
-        window.gameTimer = setInterval(() => {
-            if (gameState === 'playing') {
-                timeLeft--;
-                if (timeLeft <= 0) endGame();
-                updateHUD();
-            }
-        }, 1000);
-
+        generateMission();
         gameLoop();
+    }
+
+    function generateMission() {
+        // สุ่มโจทย์ภารกิจ
+        const count = Math.floor(Math.random() * 3) + 3; // 3-5 คำรวม
+        const karu = Math.floor(Math.random() * (count + 1));
+        const lahu = count - karu;
+        
+        // เวลาขึ้นอยู่กับจำนวนคำ (คำละ 5 วินาที)
+        const time = count * 5;
+
+        mission = {
+            active: true,
+            reqKaru: karu,
+            reqLahu: lahu,
+            gotKaru: 0,
+            gotLahu: 0,
+            maxTime: time,
+            timeLeft: time
+        };
+        updateMissionUI();
+    }
+
+    function updateMissionUI() {
+        const title = `ภารกิจ: ยิงครุ ${mission.reqKaru} | ลหุ ${mission.reqLahu}`;
+        document.getElementById('mission-text').innerText = title;
+        document.getElementById('mission-karu').innerText = `${mission.gotKaru}/${mission.reqKaru}`;
+        document.getElementById('mission-lahu').innerText = `${mission.gotLahu}/${mission.reqLahu}`;
+        
+        // เช็คว่าเสร็จหรือยัง
+        if (mission.gotKaru >= mission.reqKaru && mission.gotLahu >= mission.reqLahu) {
+            missionSuccess();
+        }
+    }
+
+    function missionSuccess() {
+        score += 50; // Bonus
+        particles.push(new TextEffect("ภารกิจสำเร็จ! +50", canvas.width/2, canvas.height/2, "#FFD700"));
+        generateMission();
+    }
+
+    function missionFail() {
+        score = Math.max(0, score - 20); // Penalty
+        particles.push(new TextEffect("หมดเวลา! -20", canvas.width/2, canvas.height/2, "#ff4136"));
+        generateMission(); // บังคับเริ่มภารกิจใหม่
     }
 
     function endGame() {
         gameState = 'gameover';
-        clearInterval(window.gameTimer);
-        
-        document.getElementById('final-score').innerText = score;
-        const accuracy = shotsFired === 0 ? 0 : Math.round((shotsHit / shotsFired) * 100);
-        document.getElementById('final-accuracy').innerText = accuracy;
-        
+        document.getElementById('game-ui').classList.add('hidden');
+        document.getElementById('end-name').innerText = playerData.name;
+        document.getElementById('end-score').innerText = score;
         document.getElementById('game-over-screen').classList.remove('hidden');
     }
 
-    function updateHUD() {
-        document.getElementById('score').innerText = score;
-        document.getElementById('time').innerText = timeLeft;
-        document.getElementById('level').innerText = level;
+    function resetGame() {
+        document.getElementById('game-over-screen').classList.add('hidden');
+        document.getElementById('intro-screen').classList.remove('hidden');
+    }
 
-        // อัพเดท UI กระสุน
-        const ammoUI = document.getElementById('ammo-switch');
-        const ammoText = document.getElementById('ammo-text');
+    /* === 5. Game Loop & Rendering === */
+
+    let lastTime = 0;
+    let spawnTimer = 0;
+    
+    function gameLoop(timestamp) {
+        if (gameState !== 'playing') return;
         
-        if (player.ammoType === 'karu') {
-            ammoUI.className = 'ammo-indicator ammo-karu';
-            ammoText.innerText = 'ครุ (สีแดง)';
-        } else {
-            ammoUI.className = 'ammo-indicator ammo-lahu';
-            ammoText.innerText = 'ลหุ (สีเขียว)';
+        const dt = (timestamp - lastTime) / 1000;
+        lastTime = timestamp;
+
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // 1. Draw Background
+        if(images.bg) {
+            // Draw BG covering screen
+            const scale = Math.max(canvas.width / images.bg.width, canvas.height / images.bg.height);
+            const x = (canvas.width / 2) - (images.bg.width / 2) * scale;
+            const y = (canvas.height / 2) - (images.bg.height / 2) * scale;
+            ctx.drawImage(images.bg, x, y, images.bg.width * scale, images.bg.height * scale);
         }
-    }
 
-    function switchAmmo() {
-        player.ammoType = player.ammoType === 'karu' ? 'lahu' : 'karu';
-        updateHUD();
-    }
+        // 2. Manage Mission Timer
+        if(mission.active) {
+            mission.timeLeft -= dt || 0.016;
+            
+            // Update Timer Bar Color and Width
+            const pct = (mission.timeLeft / mission.maxTime) * 100;
+            const bar = document.getElementById('mission-time-bar');
+            bar.style.width = pct + '%';
+            if(pct < 30) bar.style.background = '#ff0000';
+            else bar.style.background = '#00f2fe';
 
-    function spawnEnemy() {
-        // ความยาก: Level สูงขึ้น Spawn ถี่ขึ้น
-        let spawnRate = 2000;
-        if (level === 2) spawnRate = 1500;
-        if (level === 3) spawnRate = 1000;
-
-        if (Date.now() - spawnTimer > spawnRate) {
-            // Spawn จำนวนลูกบอลตาม Level
-            let count = 1;
-            if (level === 2 && Math.random() > 0.5) count = 2;
-            if (level === 3) count = Math.random() < 0.3 ? 1 : 2;
-
-            for(let i=0; i<count; i++) {
-                enemies.push(new Enemy());
+            if(mission.timeLeft <= 0) {
+                missionFail();
             }
-            spawnTimer = Date.now();
         }
-    }
 
-    function checkCollisions() {
-        // ตรวจจับ: กระสุนชนลูกบอล
+        // 3. Spawning
+        if(timestamp - spawnTimer > 1000) { // ทุก 1 วิ (ปรับได้)
+            // Spawn Enemy
+            if(Math.random() < 0.8) enemies.push(new Enemy());
+            // Spawn Item (Rare)
+            if(Math.random() < 0.15) items.push(new Item());
+            
+            spawnTimer = timestamp;
+        }
+
+        // 4. Update & Draw Entities
+        
+        // --- Player ---
+        // คำนวณตำแหน่งพระอินทร์ให้สวยงามตามสัดส่วนจอ
+        const pSize = Math.min(canvas.width, canvas.height) * 0.25; // ขนาด 25% ของด้านสั้น
+        player.w = pSize;
+        player.h = pSize; // ภาพเป็นสี่เหลี่ยมจัตุรัสโดยประมาณ
+        player.x = canvas.width / 2;
+        player.y = canvas.height - (player.h / 1.5);
+
+        // คำนวณมุมเมาส์
+        const dx = mouseX - player.x;
+        const dy = mouseY - (player.y - 50);
+        player.angle = Math.atan2(dy, dx);
+
+        // Animation logic
+        if(player.isThrowing && Date.now() - player.throwTimer > 300) {
+            player.isThrowing = false;
+        }
+        const pImg = player.isThrowing ? images.indraThrow : images.indraIdle;
+        // วาดให้คงสัดส่วน (Aspect Ratio)
+        if(pImg) {
+            const aspect = pImg.width / pImg.height;
+            const drawH = player.h;
+            const drawW = player.h * aspect;
+            ctx.drawImage(pImg, player.x - drawW/2, player.y - drawH/2, drawW, drawH);
+        }
+
+        // --- Projectiles ---
+        projectiles.forEach(p => { p.update(); p.draw(); });
+        projectiles = projectiles.filter(p => p.active);
+
+        // --- Enemies ---
+        enemies.forEach(e => { e.update(); e.draw(); });
+        enemies = enemies.filter(e => e.active);
+
+        // --- Items ---
+        items.forEach(i => { i.update(); i.draw(); });
+        items = items.filter(i => i.active);
+
+        // --- Effects ---
+        particles.forEach(p => { p.update(); p.draw(); });
+        particles = particles.filter(p => p.life > 0);
+
+        // 5. Collision Detection
+        
+        // Projectile vs Enemy
         projectiles.forEach(p => {
             enemies.forEach(e => {
-                if (!p.active || !e.active) return;
-
-                // คำนวณระยะห่าง (Circle Collision)
-                const dx = p.x - e.x;
-                const dy = p.y - e.y;
-                const dist = Math.sqrt(dx*dx + dy*dy);
-
-                if (dist < e.radius + 10) { // +10 คือรัศมีกระสุนโดยประมาณ
+                if(!p.active || !e.active) return;
+                const dist = Math.hypot(p.x - e.x, p.y - e.y);
+                if(dist < e.radius + 20) {
                     p.active = false;
                     e.active = false;
-                    
-                    // สร้าง Effect
-                    for(let i=0; i<10; i++) particles.push(new Particle(e.x, e.y, e.color));
-
-                    // ตรวจสอบความถูกต้อง
-                    if (p.type === e.type) {
-                        // ถูกต้อง
-                        score += 10;
-                        shotsHit++;
-                        // เอฟเฟกต์ดาววิ้งๆ (ใส่เสียงตรงนี้ได้)
-                    } else {
-                        // ผิด
-                        score -= 5;
-                        // เอฟเฟกต์กากบาท (ทำง่ายๆด้วย particle สีเทา)
-                        for(let i=0; i<5; i++) particles.push(new Particle(e.x, e.y, '#888'));
-                    }
-                    updateHUD();
-                    checkLevel();
+                    handleHit(e);
+                }
+            });
+            // Projectile vs Item
+            items.forEach(i => {
+                if(!p.active || !i.active) return;
+                const dist = Math.hypot(p.x - i.x, p.y - i.y);
+                if(dist < i.size + 20) {
+                    p.active = false;
+                    i.active = false;
+                    handleItem(i);
                 }
             });
         });
-    }
 
-    function checkLevel() {
-        if (score > 300) level = 3;
-        else if (score > 100) level = 2;
-        else level = 1;
-    }
-
-    function render() {
-        // Clear Canvas
-        ctx.clearRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
-
-        // 1. Draw Background
-        if (images.bg) {
-            ctx.drawImage(images.bg, 0, 0, GAME_WIDTH, GAME_HEIGHT);
-        } else {
-            ctx.fillStyle = '#203a43';
-            ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
-        }
-
-        // 2. Draw Aim Line (เส้นนำวิถี)
-        ctx.beginPath();
-        ctx.moveTo(player.x, player.y - 50); // จุดเริ่มที่ไหล่พระอินทร์
-        // คำนวณจุดปลายเส้น
-        const aimLength = 1000;
-        const endX = player.x + Math.cos(player.angle) * aimLength;
-        const endY = (player.y - 50) + Math.sin(player.angle) * aimLength;
-        
-        ctx.lineTo(endX, endY);
-        ctx.strokeStyle = player.ammoType === 'karu' ? 'rgba(255, 65, 54, 0.5)' : 'rgba(46, 204, 64, 0.5)';
-        ctx.lineWidth = 3;
-        ctx.setLineDash([10, 10]); // เส้นประ
-        ctx.stroke();
-        ctx.setLineDash([]); // reset
-
-        // 3. Draw Player (Indra)
-        const playerImg = player.isThrowing ? images.indraThrow : images.indraIdle;
-        // วาดภาพให้อยู่ตรงกลางล่าง
-        if (playerImg) {
-            ctx.drawImage(playerImg, player.x - player.width/2, player.y - player.height/2, player.width, player.height);
-        }
-
-        // 4. Draw Projectiles
-        projectiles.forEach(p => p.draw(ctx));
-
-        // 5. Draw Enemies
-        enemies.forEach(e => e.draw(ctx));
-
-        // 6. Draw Particles
-        particles.forEach(p => p.draw(ctx));
-    }
-
-    function gameLoop() {
-        if (gameState !== 'playing') return;
-
-        // --- Update Logic ---
-        
-        // Update Player Animation
-        if (player.isThrowing) {
-            if (Date.now() - player.throwTimer > 300) { // แสดงท่าขว้าง 0.3 วิ
-                player.isThrowing = false;
-            }
-        }
-
-        // คำนวณมุม (Angle) จากเมาส์
-        // ปรับ coordinate เมาส์ให้ตรงกับ Canvas scale
-        const rect = canvas.getBoundingClientRect();
-        const scaleX = canvas.width / rect.width;
-        const scaleY = canvas.height / rect.height;
-        
-        const canvasMouseX = (mouseX - rect.left) * scaleX;
-        const canvasMouseY = (mouseY - rect.top) * scaleY;
-
-        const dx = canvasMouseX - player.x;
-        const dy = canvasMouseY - (player.y - 50);
-        player.angle = Math.atan2(dy, dx);
-
-        // Spawn Enemies
-        spawnEnemy();
-
-        // Update Projectiles
-        projectiles.forEach(p => p.update());
-        projectiles = projectiles.filter(p => p.active);
-
-        // Update Enemies
-        enemies.forEach(e => e.update());
-        enemies = enemies.filter(e => e.active);
-
-        // Update Particles
-        particles.forEach(p => {
-            p.update();
-        });
-        particles = particles.filter(p => p.life > 0);
-
-        checkCollisions();
-
-        // --- Render ---
-        render();
-
+        document.getElementById('score-val').innerText = score;
         requestAnimationFrame(gameLoop);
     }
 
-    /* === 5. Event Listeners === */
-    
-    // Mouse Movement
-    window.addEventListener('mousemove', (e) => {
-        mouseX = e.clientX;
-        mouseY = e.clientY;
-    });
+    function handleHit(enemy) {
+        // เช็คว่าคำที่ยิงตรงกับภารกิจไหม
+        let useful = false;
+        if(enemy.type === 'karu') {
+            if(mission.gotKaru < mission.reqKaru) {
+                mission.gotKaru++;
+                useful = true;
+            }
+        } else {
+            if(mission.gotLahu < mission.reqLahu) {
+                mission.gotLahu++;
+                useful = true;
+            }
+        }
 
-    // Touch Movement
-    window.addEventListener('touchmove', (e) => {
-        mouseX = e.touches[0].clientX;
-        mouseY = e.touches[0].clientY;
-    });
-
-    // Shooting
-    function handleInput(e) {
-        if (gameState !== 'playing') return;
-        
-        // ป้องกันการยิงถ้าคลิกโดนปุ่ม UI
-        if (e.target.closest('.ammo-indicator') || e.target.closest('.btn')) return;
-
-        shotsFired++;
-        player.isThrowing = true;
-        player.throwTimer = Date.now();
-
-        // สร้างกระสุน
-        const startX = player.x;
-        const startY = player.y - 50;
-        projectiles.push(new Projectile(startX, startY, player.angle, player.ammoType));
+        if(useful) {
+            score += 10;
+            particles.push(new TextEffect("+10", enemy.x, enemy.y, "#fff"));
+        } else {
+            // ยิงเกิน หรือยิงตัวที่ไม่ต้องการ ไม่ลบแต้มแต่ไม่นับ
+            score += 1; // ให้กำลังใจนิดหน่อย
+            particles.push(new TextEffect("เต็มแล้ว!", enemy.x, enemy.y, "#ccc"));
+        }
+        updateMissionUI();
     }
 
-    window.addEventListener('mousedown', handleInput);
-    window.addEventListener('touchstart', handleInput);
-
-    // Key Press (Spacebar to switch ammo)
-    window.addEventListener('keydown', (e) => {
-        if (e.code === 'Space') {
-            switchAmmo();
+    function handleItem(item) {
+        if(item.type === 'time') {
+            mission.timeLeft = Math.min(mission.timeLeft + 10, mission.maxTime);
+            particles.push(new TextEffect("เวลา +10s", item.x, item.y, "#87CEEB"));
+        } else if (item.type === 'score') {
+            score += 30;
+            particles.push(new TextEffect("โบนัส +30", item.x, item.y, "#FFD700"));
+        } else if (item.type === 'bomb') {
+            score = Math.max(0, score - 30);
+            particles.push(new TextEffect("ระเบิด! -30", item.x, item.y, "#ff4136"));
         }
-    });
+    }
 
-    // Click on Ammo Switcher
-    document.getElementById('ammo-switch').addEventListener('click', (e) => {
-        e.stopPropagation(); // กันไม่ให้ไป trigger การยิง
-        switchAmmo();
+    /* === 6. Inputs === */
+    window.addEventListener('mousemove', e => { mouseX = e.clientX; mouseY = e.clientY; });
+    window.addEventListener('touchmove', e => { 
+        mouseX = e.touches[0].clientX; mouseY = e.touches[0].clientY; 
     });
-
-    // Resize handling
-    window.addEventListener('resize', () => {
-        // CSS จัดการขนาด Canvas แล้ว แต่ถ้าต้องการ Logic เพิ่มเติมใส่ตรงนี้
-    });
-
-    // UI Helpers
-    window.showRules = function() {
-        document.getElementById('rules-modal').classList.remove('hidden');
-    };
     
-    window.hideRules = function() {
-        document.getElementById('rules-modal').classList.add('hidden');
-    };
+    function shoot(e) {
+        if(gameState !== 'playing') return;
+        if(e.target.tagName === 'BUTTON') return; // Don't shoot if clicking buttons
 
-    /* === 6. เริ่มต้น (Initialization) === */
+        player.isThrowing = true;
+        player.throwTimer = Date.now();
+        
+        // จุดเริ่มยิง (มือ)
+        projectiles.push(new Projectile(player.x, player.y - 50, player.angle));
+    }
+    window.addEventListener('mousedown', shoot);
+    window.addEventListener('touchstart', shoot);
+
+    /* === 7. Start === */
     loadImages(() => {
-        document.getElementById('loading').style.display = 'none';
-        // พร้อมเริ่มเกม (รอผู้เล่นกดปุ่ม)
-        render(); // วาดฉากรอไว้ก่อน
+        // Ready
+        console.log("Images Loaded");
     });
 
 </script>
