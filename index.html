@@ -151,6 +151,7 @@
             color: white;
             text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
             transition: transform 0.2s;
+            z-index: 1000;
         }
 
         .special-item-btn:active {
@@ -317,10 +318,17 @@
 </div>
 
 <script>
+    /* ==========================================================================
+       COMPLETE LOGIC FROM เครื่องมือตรวจอินทรวิเชียรฉันท์ 11
+       ========================================================================== */
+    
+    // ========== ฟังก์ชันตรวจสอบสัมผัส ==========
     function checkSamphus(word1, word2) {
         if (!word1 || !word2) return false;
-        word1 = word1.trim(); word2 = word2.trim();
+        word1 = word1.trim();
+        word2 = word2.trim();
         if (!word1 || !word2) return false;
+        
         const sound1 = getVowelAndFinalSound(word1);
         const sound2 = getVowelAndFinalSound(word2);
         
@@ -329,65 +337,71 @@
                sound1.vowel !== '' && sound1.finalGroup !== '';
     }
 
-    function isKaru(word) {
-        if (!word) return false;
-        const sound = getVowelAndFinalSound(word);
-        const shortVowels = ['อะ', 'อิ', 'อุ', 'เอะ', 'โอะ', 'เอาะ'];
-        const deadEndings = ['กก', 'กด', 'กบ'];
-        return shortVowels.includes(sound.vowel) && deadEndings.includes(sound.finalGroup);
-    }
-
-    function isLahu(word) {
-        if (!word) return false;
-        const sound = getVowelAndFinalSound(word);
-        const longVowels = ['อา', 'อี', 'อู', 'เอ', 'แอ', 'โอ', 'ออ', 'เออ', 'ไอ', 'ใอ', 'อัว', 'เอีย', 'เอือ', 'อำ'];
-        const liveEndings = ['กน', 'กม', 'กง', 'เกย', 'เกอว', 'กกา'];
-        return longVowels.includes(sound.vowel) || liveEndings.includes(sound.finalGroup);
-    }
-
+    // ========== ฟังก์ชันหาเสียงสระและเสียงสุดท้าย ==========
     function getVowelAndFinalSound(word) {
         if (!word) return { vowel: '', finalGroup: '' };
+        
         const cleanWord = word.replace(/[่้๊๋์]/g, '');
         const processedWord = processLeadingConsonants(cleanWord);
         
+        // --- Ror Han Specific Rules ---
         if (/รร[ถตษสศดจชฎฏฐฑฒทธ]$/.test(processedWord)) return { vowel: 'อะ', finalGroup: 'กด' };
         if (/รร[คกขฆ]$/.test(processedWord)) return { vowel: 'อะ', finalGroup: 'กก' };
         if (/รร[พภบปฟ]$/.test(processedWord)) return { vowel: 'อะ', finalGroup: 'กบ' };
         if (processedWord.endsWith('รรม')) return { vowel: 'อำ', finalGroup: 'กกา' };
-        if (processedWord.endsWith('รร') || processedWord.endsWith('รรณ')) return { vowel: 'อะ', finalGroup: 'กน' };
+        if (processedWord.endsWith('รร')) return { vowel: 'อะ', finalGroup: 'กน' };
+        if (processedWord.endsWith('รรณ')) return { vowel: 'อะ', finalGroup: 'กน' };
         
         if (hasAiVowel(processedWord)) return { vowel: 'ไอ', finalGroup: 'เกย' };
         
         const finalGroup = getFinalConsonantGroup(processedWord);
         const vowel = getVowelSound(processedWord);
+        
         return { vowel, finalGroup };
     }
 
     function processLeadingConsonants(word) {
         const anamYWords = ['อย่า', 'อยู่', 'อย่าง', 'อยาก'];
         for (let anamWord of anamYWords) {
-            if (word.startsWith(anamWord.replace(/[่้๊๋์]/g, ''))) return 'ย' + word.substring(2);
+            if (word.startsWith(anamWord.replace(/[่้๊๋์]/g, ''))) {
+                return 'ย' + word.substring(2);
+            }
         }
+        
         if (word.length >= 2 && word.charAt(0) === 'ห') {
             const secondChar = word.charAt(1);
             const leadingConsonants = ['ง', 'ย', 'ญ', 'ร', 'น', 'ล', 'ม', 'ว'];
-            if (leadingConsonants.includes(secondChar)) return word.substring(1);
+            
+            if (leadingConsonants.includes(secondChar)) {
+                return word.substring(1);
+            }
         }
         return word;
     }
 
     function hasAiVowel(word) {
-        if (word.includes('ไ') || word.includes('ใ') || word.includes('ัย')) return true;
-        const specialAiWords = ['วัย', 'ชัย', 'ภัย', 'ไทย', 'อัย', 'ขัย', 'นัย', 'ลัย', 'สัย'];
+        if (word.includes('ไ')) return true;
+        if (word.includes('ใ')) return true;
+        if (word.includes('ัย')) return true;
+        
+        const specialAiWords = [
+            'วัย', 'ชัย', 'ภัย', 'ไทย', 'อัย', 'ขัย', 'นัย', 'ลัย', 'สัย',
+            'ปัจจัย', 'อาศัย', 'วิสัย', 'ปรนัย', 'อุปัย', 'วิธัย'
+        ];
+        
         for (let specialWord of specialAiWords) {
-            if (word === specialWord || word.endsWith(specialWord)) return true;
+            if (word === specialWord || word.endsWith(specialWord)) {
+                return true;
+            }
         }
         return false;
     }
 
     function getFinalConsonantGroup(word) {
         if (hasAiVowel(word)) return 'เกย'; 
+        
         const lastChar = word.charAt(word.length - 1);
+        
         const finalConsonantGroups = {
             'ก': 'กก', 'ข': 'กก', 'ค': 'กก', 'ฆ': 'กก',
             'จ': 'กด', 'ช': 'กด', 'ซ': 'กด', 'ฌ': 'กด', 'ญ': 'กด',
@@ -396,28 +410,211 @@
             'ฑ': 'กด', 'ฒ': 'กด',
             'บ': 'กบ', 'ป': 'กบ', 'พ': 'กบ', 'ฟ': 'กบ', 'ภ': 'กบ',
             'น': 'กน', 'ณ': 'กน', 'ร': 'กน', 'ล': 'กน', 'ฬ': 'กน',
-            'ม': 'กม', 'ง': 'กง', 'ย': 'เกย', 'ว': 'เกอว'
+            'ม': 'กม',
+            'ง': 'กง',
+            'ย': 'เกย',
+            'ว': 'เกอว'
         };
-        return finalConsonantGroups[lastChar] || 'กกา';
+        
+        if (finalConsonantGroups[lastChar]) {
+            return finalConsonantGroups[lastChar];
+        }
+        return 'กกา';
     }
 
     function getVowelSound(word) {
         if (hasAiVowel(word)) return 'ไอ';
+        
         if (word.includes('เอีย')) return 'เอีย';
         if (word.includes('เอือ')) return 'เอือ';
         if (word.includes('อัว')) return 'อัว';
+        if (word.includes('เอาะ')) return 'เอาะ';
+        if (word.includes('เออะ')) return 'เออะ';
+        if (word.includes('เอียะ')) return 'เอียะ';
+        if (word.includes('เอือะ')) return 'เอือะ';
+        if (word.includes('อัวะ')) return 'อัวะ';
+        
         if (word.includes('อำ') || word.includes('ำ')) return 'อำ';
+        if (word.includes('เอา')) return 'เอา';
+        if (word.includes('เออ')) return 'เออ';
+        if (word.includes('แอ')) return 'แอ';
+        if (word.includes('โอ')) return 'โอ';
+        if (word.includes('ออ')) return 'ออ';
+        if (word.includes('อื')) return 'อื';
+        if (word.includes('อู')) return 'อู';
+        if (word.includes('อี')) return 'อี';
         if (word.includes('อา') || word.includes('า')) return 'อา';
-        if (word.includes('อี') || word.includes('ี')) return 'อี';
-        if (word.includes('อิ') || word.includes('ิ')) return 'อิ';
-        if (word.includes('อะ') || word.includes('ะ') || word.includes('ั')) return 'อะ';
+        
+        if (word.includes('เอะ')) return 'เอะ';
+        if (word.includes('แอะ')) return 'แอะ';
+        if (word.includes('โอะ')) return 'โอะ';
+        if (word.includes('เออะ')) return 'เออะ';
+        if (word.includes('อึ')) return 'อึ';
+        if (word.includes('อุ')) return 'อุ';
+        if (word.includes('อิ')) return 'อิ';
+        if (word.includes('อะ') || word.includes('ะ')) return 'อะ';
+        
+        if (word.includes('ั')) return 'อะ';
+        
+        if (word.length === 1 || (word.length === 2 && "่้๊๋์".includes(word.charAt(1)))) {
+            return 'อะ'; 
+        }
+        
         return word.charAt(word.length - 1);
     }
 
-    const KARU_WORDS = ['ภพ', 'จบ', 'ลบ', 'รบ', 'สบ', 'นพ', 'ศพ', 'พบ', 'คบ', 'กบ', 'ทรัพย์', 'ศักดิ์', 'สิทธิ์', 'จิต', 'ดิน'];
-    const LAHU_WORDS = ['กาล', 'งาน', 'มาร', 'ชาญ', 'ฐาน', 'สาร', 'วาร', 'บ้าน', 'ขาน', 'นาน', 'ธรรม', 'กรรม', 'จำ', 'คำ', 'ทำ', 'นำ', 'ขำ', 'ลำ', 'ไกล', 'ใจ', 'ไทย', 'ใน', 'ใด', 'ใส', 'วัย', 'ชัย', 'นัย', 'โลก', 'โชค', 'โรค', 'โศก', 'โยก', 'โบก', 'เรียน', 'เพียร', 'เขียน', 'เวียน', 'เทียน'];
+    // ========== ฟังก์ชันตรวจสอบครุ/ลหุ (จากโค้ดเครื่องมือตรวจฉันท์) ==========
+    function hasHiddenEndingConsonant(word) {
+        const cleanWord = word.replace(/[่้๊๋์]/g, '');
+        
+        if (!cleanWord.endsWith('ิ') && !cleanWord.endsWith('ุ')) {
+            return false;
+        }
+        
+        if (cleanWord.length < 3) return false;
+        
+        const beforeLastVowel = cleanWord.substring(0, cleanWord.length - 1);
+        const consonants = 'กขคฆงจฉชซฌญฎฏฐฑฒณดตถทธนบปผฝพฟภมยรลวศษสหฬอฮ';
+        let consonantCount = 0;
+        let pos = beforeLastVowel.length - 1;
+        
+        while (pos >= 0 && consonants.includes(beforeLastVowel[pos])) {
+            consonantCount++;
+            pos--;
+        }
+        
+        if (consonantCount >= 2) return true;
+        
+        if (consonantCount === 1 && pos >= 0) {
+            const vowels = 'ะัาำิีึืุูเแโใไๅ';
+            if (vowels.includes(beforeLastVowel[pos])) {
+                return true;
+            }
+        }
+        
+        return false;
+    }
+
+    function isLahu(word) {
+        if (!word) return false;
+        word = word.trim();
+        if (!word) return false;
+
+        const cleanWord = word.replace(/[่้๊๋์]/g, '');
+        const processedWord = processLeadingConsonants(cleanWord);
+
+        const specialLahu = ["ก็", "บ่", "ณ", "ธ"];
+        if (specialLahu.includes(word)) return true;
+
+        if (processedWord.includes("อำ") || processedWord.includes("ไอ") || 
+            processedWord.includes("ใอ") || processedWord.includes("เอา")) {
+            return false;
+        }
+        
+        // ตรวจสอบคำที่มีพยัญชนะซ้อน
+        if (hasHiddenEndingConsonant(processedWord)) {
+            return false;
+        }
+
+        if (hasEndingConsonant(word)) {
+            return false; 
+        }
+
+        const forceKruLongVowels = ["า", "ี", "ื", "ู", "เ", "แ", "โ"];
+        const shorteners = ["ะ", "็"]; 
+
+        let hasLongVowel = false;
+        for (let v of forceKruLongVowels) {
+            if (processedWord.includes(v)) {
+                hasLongVowel = true;
+                break;
+            }
+        }
+
+        if (hasLongVowel) {
+            let isShortened = false;
+            for (let s of shorteners) {
+                if (processedWord.includes(s)) {
+                    isShortened = true;
+                    break;
+                }
+            }
+            if (processedWord.includes("เอาะ") || processedWord.includes("เออะ") || 
+                processedWord.includes("อัวะ") || processedWord.includes("เอียะ") || 
+                processedWord.includes("เอือะ")) {
+                isShortened = true;
+            }
+            if (!isShortened) {
+                return false; 
+            }
+        }
+
+        const shortVowelPatterns = ["อะ", "อิ", "อึ", "อุ", "เอะ", "แอะ", "โอะ", 
+                                     "เอาะ", "เอียะ", "เอือะ", "อัวะ", "เออะ", 
+                                     "ะ", "ิ", "ึ", "ุ", "เ-ะ", "แ-ะ", "โ-ะ", "เ-าะ"];
+        
+        for (let vowel of shortVowelPatterns) {
+            if (processedWord.includes(vowel)) {
+                return true; 
+            }
+        }
+
+        const longVowelPatterns = ["อา", "อี", "อื", "อู", "เอ", "แอ", "โอ", "ออ", 
+                                    "เออ", "า", "ี", "ื", "ู", "เ-", "แ-", "โ-", "อ-", "เ-อ"];
+        
+        for (let vowel of longVowelPatterns) {
+            if (processedWord.includes(vowel)) {
+                return false; 
+            }
+        }
+
+        if (processedWord.length === 1 || 
+            (processedWord.length === 2 && "่้๊๋์".includes(processedWord.charAt(1)))) {
+            return true; 
+        }
+        return false;
+    }
+
+    function hasEndingConsonant(word) {
+        const cleanWord = word.replace(/[่้๊๋์]/g, '');
+        const processedWord = processLeadingConsonants(cleanWord);
+        const finalConsonants = ["ก", "ข", "ค", "ฆ", "จ", "ช", "ซ", "ฌ", "ญ", 
+                                  "ด", "ต", "ถ", "ท", "ธ", "ศ", "ษ", "ส", 
+                                  "ฏ", "ฐ", "บ", "ป", "ผ", "ฝ", "พ", "ฟ", "ภ", 
+                                  "น", "ณ", "ร", "ล", "ฬ", "ม", "ย", "ว", "ง"];
+        
+        const lastChar = processedWord.charAt(processedWord.length - 1);
+        
+        if (finalConsonants.includes(lastChar)) {
+            if (processedWord.length === 1) return false; 
+            const beforeLast = processedWord.charAt(processedWord.length - 2);
+            if ("่้๊๋์".includes(beforeLast)) return false;
+            return true;
+        }
+        return false;
+    }
+
+    /* ==========================================================================
+       GAME DATA
+       ========================================================================== */
+    const KARU_WORDS = [
+        'ภพ', 'จบ', 'ลบ', 'รบ', 'สบ', 'นพ', 'ศพ', 'พบ', 'คบ', 'กบ',
+        'ทรัพย์', 'ศักดิ์', 'สิทธิ์', 'จิต', 'ดิน', 'ปัจ', 'ศิลป์', 'สิทธิ', 'ยุทธ'
+    ];
+
+    const LAHU_WORDS = [
+        'กาล', 'งาน', 'มาร', 'ชาญ', 'ฐาน', 'สาร', 'วาร', 'บ้าน', 'ขาน', 'นาน',
+        'ธรรม', 'กรรม', 'จำ', 'คำ', 'ทำ', 'นำ', 'ขำ', 'ลำ', 
+        'ไกล', 'ใจ', 'ไทย', 'ใน', 'ใด', 'ใส', 'วัย', 'ชัย', 'นัย',
+        'โลก', 'โชค', 'โรค', 'โศก', 'โยก', 'โบก',
+        'เรียน', 'เพียร', 'เขียน', 'เวียน', 'เทียน', 'มาก', 'ปราณ', 'ราช'
+    ];
+
     const ALL_WORDS = [...KARU_WORDS, ...LAHU_WORDS];
 
+    /* ==========================================================================
+       GAME SYSTEM
+       ========================================================================== */
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
     
@@ -527,6 +724,8 @@
             );
             document.getElementById('mission-label').innerText = 'ภารกิจแทรก: ยิงคำสัมผัสของ';
             document.getElementById('target-word-display').innerText = `"${currentTargetWord}"`;
+            
+            console.log(`Mission Sampus: ${currentTargetWord}, matches: ${currentCorrectWords.join(', ')}`);
         }
     }
 
@@ -571,7 +770,11 @@
                 let wrongWords = ALL_WORDS.filter(w => 
                     !checkSamphus(currentTargetWord, w) && w !== currentTargetWord
                 );
-                enemy.word = wrongWords[Math.floor(Math.random() * wrongWords.length)];
+                if (wrongWords.length > 0) {
+                    enemy.word = wrongWords[Math.floor(Math.random() * wrongWords.length)];
+                } else {
+                    enemy.word = ALL_WORDS[Math.floor(Math.random() * ALL_WORDS.length)];
+                }
                 enemy.isCorrect = false;
                 enemy.type = 'sampus';
             }
@@ -633,6 +836,7 @@
             spawnTimer = timestamp;
         }
 
+        // Draw Aim Guide
         ctx.save();
         ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
         ctx.lineWidth = 2;
@@ -644,6 +848,7 @@
         ctx.setLineDash([]);
         ctx.restore();
 
+        // Player
         const pSize = Math.min(displayWidth, displayHeight) * 0.2;
         player.w = pSize; player.h = pSize;
         player.x = displayWidth/2; 
@@ -664,6 +869,7 @@
             ctx.restore();
         }
 
+        // Projectiles
         projectiles.forEach(p => {
             p.x += Math.cos(p.angle) * p.speed;
             p.y += Math.sin(p.angle) * p.speed;
@@ -686,6 +892,7 @@
         });
         projectiles = projectiles.filter(p => p.active);
 
+        // Enemies
         enemies.forEach(e => {
             e.y += e.speed;
             
@@ -707,6 +914,7 @@
         });
         enemies = enemies.filter(e => e.active);
 
+        // Items
         items.forEach(i => {
             i.y += i.speed;
             ctx.font = "50px Arial";
@@ -716,6 +924,7 @@
         });
         items = items.filter(i => i.active);
 
+        // Particles
         particles.forEach(p => {
             p.y -= 1; p.life -= 0.02;
             ctx.globalAlpha = Math.max(0, p.life);
@@ -746,7 +955,9 @@
                     let pointsText = "";
                     
                     if (currentMissionType === 'karu') {
-                        isCorrect = isKaru(e.word);
+                        isCorrect = isLahu(e.word) === false;
+                        console.log(`Karu check: ${e.word} -> isLahu: ${isLahu(e.word)}, isCorrect: ${isCorrect}`);
+                        
                         if (isCorrect) {
                             score += 10;
                             karuCollected++;
@@ -763,6 +974,8 @@
                         }
                     } else if (currentMissionType === 'lahu') {
                         isCorrect = isLahu(e.word);
+                        console.log(`Lahu check: ${e.word} -> isLahu: ${isLahu(e.word)}`);
+                        
                         if (isCorrect) {
                             score += 10;
                             lahuCollected++;
@@ -779,6 +992,8 @@
                         }
                     } else {
                         isCorrect = checkSamphus(currentTargetWord, e.word);
+                        console.log(`Sampus check: ${currentTargetWord} vs ${e.word} -> ${isCorrect}`);
+                        
                         if (isCorrect) {
                             score += 15;
                             sampusCollected++;
@@ -814,21 +1029,50 @@
         });
     }
 
+    // ========== แก้ไข: ยิงแบบ Touch โดยตรง ==========
     function shoot(e) {
         if(gameState !== 'playing') return;
         if(e.target.tagName === 'BUTTON') return;
         
+        e.preventDefault();
+        
+        // ถ้าเป็น touch ให้ยิงไปที่ตำแหน่งที่แตะทันที
+        let targetX, targetY;
+        
+        if (e.type.startsWith('touch')) {
+            targetX = e.touches[0].clientX;
+            targetY = e.touches[0].clientY;
+        } else {
+            targetX = e.clientX;
+            targetY = e.clientY;
+        }
+        
+        const dx = targetX - player.x;
+        const dy = targetY - (player.y - 50);
+        const shootAngle = Math.atan2(dy, dx);
+        
         player.isThrowing = true;
         player.throwTimer = Date.now();
+        player.angle = shootAngle;
         
         projectiles.push({
             x: player.x, 
             y: player.y - 50,
-            angle: player.angle,
+            angle: shootAngle,
             speed: 15,
             active: true,
             isSpecial: false
         });
+    }
+
+    function updateMousePosition(e) {
+        if (e.type.startsWith('touch')) {
+            mouseX = e.touches[0].clientX;
+            mouseY = e.touches[0].clientY;
+        } else {
+            mouseX = e.clientX;
+            mouseY = e.clientY;
+        }
     }
 
     function useSpecialItem() {
@@ -881,14 +1125,11 @@
         document.getElementById('game-over-screen').classList.remove('hidden');
     }
 
-    window.addEventListener('mousemove', e => { mouseX = e.clientX; mouseY = e.clientY; });
-    window.addEventListener('touchmove', e => { 
-        e.preventDefault();
-        mouseX = e.touches[0].clientX; 
-        mouseY = e.touches[0].clientY; 
-    }, { passive: false });
+    // Event Listeners
+    window.addEventListener('mousemove', updateMousePosition);
+    window.addEventListener('touchmove', updateMousePosition, { passive: false });
     window.addEventListener('mousedown', shoot);
-    window.addEventListener('touchstart', shoot);
+    window.addEventListener('touchstart', shoot, { passive: false });
 
     loadImages(() => console.log("Ready"));
 
