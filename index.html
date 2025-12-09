@@ -277,6 +277,7 @@
             width: 400px;
             max-height: 80vh;
             overflow-y: auto;
+            pointer-events: auto;
         }
 
         .logo {
@@ -300,6 +301,8 @@
             border: 2px solid #ddd; 
             border-radius: 5px; 
             font-size: 1rem;
+            pointer-events: auto;
+            cursor: text;
         }
 
         .btn {
@@ -314,6 +317,12 @@
             width: 100%; 
             margin-top: 10px;
             text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
+            pointer-events: auto;
+            user-select: none;
+        }
+
+        .btn:active {
+            transform: scale(0.98);
         }
 
         .time-selector {
@@ -333,6 +342,12 @@
             font-weight: bold;
             transition: all 0.2s;
             color: var(--deep-blue);
+            pointer-events: auto;
+            user-select: none;
+        }
+
+        .time-btn:active {
+            transform: scale(0.95);
         }
 
         .time-btn.selected {
@@ -401,10 +416,10 @@
             
             <h2>เลือกเวลาการเล่น</h2>
             <div class="time-selector">
-                <div class="time-btn" onclick="selectTime(60)">1 นาที</div>
-                <div class="time-btn selected" onclick="selectTime(180)">3 นาที</div>
-                <div class="time-btn" onclick="selectTime(300)">5 นาที</div>
-                <div class="time-btn" onclick="selectTime(600)">10 นาที</div>
+                <div class="time-btn" onclick="selectTime(60, this)">1 นาที</div>
+                <div class="time-btn selected" onclick="selectTime(180, this)">3 นาที</div>
+                <div class="time-btn" onclick="selectTime(300, this)">5 นาที</div>
+                <div class="time-btn" onclick="selectTime(600, this)">10 นาที</div>
             </div>
             
             <button class="btn" onclick="startGame()">เริ่มการแข่งขัน!</button>
@@ -566,15 +581,22 @@
         });
     }
 
-    function selectTime(seconds) {
+    function selectTime(seconds, element) {
         selectedTime = seconds;
         document.querySelectorAll('.time-btn').forEach(btn => btn.classList.remove('selected'));
-        event.target.classList.add('selected');
+        element.classList.add('selected');
     }
 
     function startGame() {
+        console.log("startGame called");
         const name = document.getElementById('p-name').value;
-        if(!name) { alert("กรุณากรอกชื่อ"); return; }
+        console.log("Player name:", name);
+        if(!name) { 
+            alert("กรุณากรอกชื่อ"); 
+            return; 
+        }
+        
+        console.log("Starting game with time:", selectedTime);
         
         document.getElementById('login-screen').classList.add('hidden');
         document.getElementById('game-over-screen').classList.add('hidden');
@@ -600,6 +622,8 @@
         missionTimer = performance.now();
         itemSpawnTimer = performance.now();
         requestAnimationFrame(gameLoop);
+        
+        console.log("Game started successfully");
     }
 
     function setNewMission() {
