@@ -444,20 +444,34 @@
     /* ==========================================================================
        SOUND EFFECTS
        ========================================================================== */
+    const bgMusic = new Audio('https://nonthaphathr.github.io/uploadimg/karulahugame3-1');
+    const shootSound = new Audio('https://nonthaphathr.github.io/uploadimg/karulahugame3-1');
+    
+    bgMusic.loop = true;
+    bgMusic.volume = 0.3;
+    shootSound.volume = 0.4;
+    
     function playSound(type) {
         try {
-            const audio = new Audio();
-            if (type === 'correct') {
-                audio.src = 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuBzvLZiTYIG2m98OScTgwOUKzn77djGwU7k9n0zHksBSN0yPDdkUELEl+16+qnVRMKSKDh8r9vIgUs';
-            } else if (type === 'wrong') {
-                audio.src = 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACAgoaGZ1lZZI2lnIJaLCZXk8POpVoQAy6M0ejAZyADJXnB5dN+LwYad7fr3pE9CQ9apu3srE0PBz+W3/C9aB0EJ4HM8NiEMwYZZ7ns4JhKCgtQqOLusmAbBDiQ1fDKdykEI3XG79yNPQkSXbPp6aVSEQhEnt/wvWoeBS6AzfDYiDUGG2q98OKbTQsN';
-            } else if (type === 'item') {
-                audio.src = 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACDh4yJb2Bid52ysp1vQDlnq9vkr2YdBkGf4PTHdjAHLoPS+N+SRQwdcL7x6KJYEw1Wq+jzwm4oBTKJ1PTSgTgJHnHB8+qlWRQOXbTr9MZ2MAc0jNn13pBBCxVhtuvvsmkcBT2U2/TOejEGJnfJ8d+TPw';
-            } else if (type === 'sampusStart') {
-                audio.src = 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACFiY6LcmVlfqOzs6B1RDxqr9/osnAbBkakyPjNfTQLMone+uKVSQ8hc8L17KdbFg9bsuz3yHg0CD+X3vrlplwYEl219fidfkAMJIHN9eC';
+            if (type === 'bgMusic') {
+                bgMusic.play().catch(() => {});
+            } else if (type === 'shoot') {
+                shootSound.currentTime = 0;
+                shootSound.play().catch(() => {});
+            } else {
+                const audio = new Audio();
+                if (type === 'correct') {
+                    audio.src = 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuBzvLZiTYIG2m98OScTgwOUKzn77djGwU7k9n0zHksBSN0yPDdkUELEl+16+qnVRMKSKDh8r9vIgUs';
+                } else if (type === 'wrong') {
+                    audio.src = 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACAgoaGZ1lZZI2lnIJaLCZXk8POpVoQAy6M0ejAZyADJXnB5dN+LwYad7fr3pE9CQ9apu3srE0PBz+W3/C9aB0EJ4HM8NiEMwYZZ7ns4JhKCgtQqOLusmAbBDiQ1fDKdykEI3XG79yNPQkSXbPp6aVSEQhEnt/wvWoeBS6AzfDYiDUGG2q98OKbTQsN';
+                } else if (type === 'item') {
+                    audio.src = 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACDh4yJb2Rid52ysp1vQDlnq9vkr2YdBkGf4PTHdjAHLoPS+N+SRQwdcL7x6KJYEw1Wq+jzwm4oBTKJ1PTSgTgJHnHB8+qlWRQOXbTr9MZ2MAc0jNn13pBBCxVhtuvvsmkcBT2U2/TOejEGJnfJ8d+TPw';
+                } else if (type === 'sampusStart') {
+                    audio.src = 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACFiY6LcmVlfqOzs6B1RDxqr9/osnAbBkakyPjNfTQLMone+uKVSQ8hc8L17KdbFg9bsuz3yHg0CD+X3vrlplwYEl219fidfkAMJIHN9eC';
+                }
+                audio.volume = 0.3;
+                audio.play().catch(() => {});
             }
-            audio.volume = 0.3;
-            audio.play().catch(() => {});
         } catch (e) {}
     }
 
@@ -618,6 +632,9 @@
         missionTimer = performance.now();
         itemSpawnTimer = performance.now();
         requestAnimationFrame(gameLoop);
+        
+        // เล่นเพลงประกอบ
+        playSound('bgMusic');
         
         console.log("Game started successfully");
     }
@@ -847,8 +864,16 @@
         document.getElementById('time-val').innerText = `${minutes}:${seconds.toString().padStart(2, '0')}`;
         if(timeLeft <= 10) document.getElementById('time-val').style.color = 'red';
 
-        // Mission timer - ทุก 60 วินาทีจะเริ่มภารกิจสัมผัส
-        if (!sampusMissionActive && timestamp - missionTimer > 60000) {
+        // Mission timer - ภารกิจสัมผัสเกิดตามเวลาที่เหมาะสม
+        // เงื่อนไข: 
+        // 1. ต้องเล่นไปแล้วอย่างน้อย 45 วินาที
+        // 2. ต้องมีเวลาเหลืออย่างน้อย 30 วินาที  
+        // 3. ห่างจากภารกิจสัมผัสครั้งก่อนอย่างน้อย 60 วินาที
+        const timePlayed = selectedTime - timeLeft;
+        if (!sampusMissionActive && 
+            timestamp - missionTimer > 60000 && 
+            timePlayed >= 45 && 
+            timeLeft >= 30) {
             startSampusMission();
             missionTimer = timestamp;
         }
@@ -1245,6 +1270,11 @@
 
     function endGame() {
         gameState = 'gameover';
+        
+        // หยุดเพลงประกอบ
+        bgMusic.pause();
+        bgMusic.currentTime = 0;
+        
         document.getElementById('game-ui').classList.add('hidden');
         document.getElementById('end-name').innerText = document.getElementById('p-name').value;
         document.getElementById('end-score').innerText = score;
