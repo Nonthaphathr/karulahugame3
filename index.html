@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>เกมยิงสายฟ้า: ศึกชิงเจ้าแห่งฉันท์</title>
+    <title>อินทรวิเชียรเกม : ฟาดสายฟ้าครุ-ลหุ</title>
     <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700&family=Prompt:wght@600&display=swap" rel="stylesheet">
     <style>
         * { 
@@ -40,6 +40,17 @@
             height: 100vh;
             background: linear-gradient(to bottom, #1e3c72 0%, #2a5298 100%);
             overflow: hidden;
+            transition: background 0.5s ease;
+        }
+
+        #game-container.sampus-mode {
+            background: linear-gradient(to bottom, #FFA500 0%, #FFD700 50%, #FFA500 100%);
+            animation: sampusGlow 2s infinite;
+        }
+
+        @keyframes sampusGlow {
+            0%, 100% { filter: brightness(1); }
+            50% { filter: brightness(1.2); }
         }
 
         canvas { 
@@ -111,6 +122,14 @@
             pointer-events: auto;
             animation: pulse 2s infinite;
             max-width: 90%;
+            transition: all 0.5s ease;
+        }
+
+        .target-panel.sampus-mode {
+            background: rgba(255, 215, 0, 0.95);
+            border: 4px solid #FF6B00;
+            box-shadow: 0 0 40px rgba(255, 107, 0, 0.8);
+            animation: sampusPulse 1s infinite;
         }
 
         @keyframes pulse {
@@ -119,54 +138,113 @@
             100% { transform: translateX(-50%) scale(1); box-shadow: 0 0 20px rgba(255, 215, 0, 0.5); }
         }
 
+        @keyframes sampusPulse {
+            0% { transform: translateX(-50%) scale(1); }
+            50% { transform: translateX(-50%) scale(1.1); }
+            100% { transform: translateX(-50%) scale(1); }
+        }
+
         .target-label { 
             font-size: 0.85rem; 
             color: #666; 
             margin-bottom: 3px; 
         }
+        
+        .target-panel.sampus-mode .target-label {
+            color: #8B4513;
+            font-weight: bold;
+        }
+        
         .target-word { 
             font-size: 2rem; 
             color: var(--deep-blue); 
             font-weight: bold; 
             line-height: 1; 
         }
+        
+        .target-panel.sampus-mode .target-word {
+            color: #FF6B00;
+        }
 
-        .special-item-btn {
+        .power-ups {
             position: fixed;
-            bottom: calc(20px + env(safe-area-inset-bottom));
+            bottom: calc(100px + env(safe-area-inset-bottom));
             right: calc(20px + env(safe-area-inset-right));
-            width: 70px;
-            height: 70px;
-            border-radius: 50%;
-            background: linear-gradient(45deg, #FFD700, #FFA500);
-            border: 4px solid white;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
             pointer-events: auto;
+            z-index: 1000;
+        }
+
+        .power-up-btn {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: linear-gradient(45deg, #4CAF50, #45a049);
+            border: 3px solid white;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.4);
             cursor: pointer;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            font-size: 2rem;
+            font-size: 1.5rem;
             color: white;
             text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
             transition: transform 0.2s;
-            z-index: 1000;
         }
 
-        .special-item-btn:active {
+        .power-up-btn:active {
             transform: scale(0.9);
         }
 
-        .special-item-btn.disabled {
+        .power-up-btn.disabled {
             opacity: 0.5;
             pointer-events: none;
         }
 
-        .item-count {
-            font-size: 0.8rem;
+        .power-up-btn.lightning {
+            background: linear-gradient(45deg, #FFD700, #FFA500);
+        }
+
+        .power-up-btn.shield {
+            background: linear-gradient(45deg, #2196F3, #1976D2);
+        }
+
+        .power-up-btn.double {
+            background: linear-gradient(45deg, #9C27B0, #7B1FA2);
+        }
+
+        .power-up-count {
+            font-size: 0.7rem;
             font-weight: bold;
             margin-top: -5px;
+        }
+
+        .active-effects {
+            position: fixed;
+            top: calc(150px + env(safe-area-inset-top));
+            right: calc(20px + env(safe-area-inset-right));
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            pointer-events: none;
+        }
+
+        .effect-badge {
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            border: 2px solid white;
+            animation: fadeIn 0.3s;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateX(20px); }
+            to { opacity: 1; transform: translateX(0); }
         }
 
         .screen {
@@ -199,6 +277,20 @@
             width: 400px;
             max-height: 80vh;
             overflow-y: auto;
+        }
+
+        .logo {
+            max-width: 200px;
+            height: auto;
+            margin-bottom: 20px;
+            filter: drop-shadow(0 4px 8px rgba(0,0,0,0.2));
+        }
+
+        .developer {
+            font-size: 0.9rem;
+            color: #666;
+            margin-top: 10px;
+            font-style: italic;
         }
 
         input {
@@ -254,6 +346,7 @@
         h1 {
             font-size: 1.8rem;
             margin-bottom: 10px;
+            color: var(--deep-blue);
         }
 
         h2 {
@@ -275,21 +368,36 @@
             <button class="btn-end-game" onclick="endGame()">จบเกม</button>
         </div>
 
-        <div class="target-panel">
-            <div class="target-label" id="mission-label">ภารกิจ: ยิงคำสัมผัสของ</div>
-            <div class="target-word" id="target-word-display">...</div>
+        <div class="target-panel" id="target-panel">
+            <div class="target-label" id="mission-label">ภารกิจ: เก็บคำครุ</div>
+            <div class="target-word" id="target-word-display">ครุ ⚫</div>
         </div>
 
-        <button class="special-item-btn" id="special-btn" onclick="useSpecialItem()">
-            ⚡
-            <div class="item-count" id="special-count">0</div>
-        </button>
+        <div class="active-effects" id="active-effects"></div>
+
+        <div class="power-ups">
+            <button class="power-up-btn lightning" id="lightning-btn" onclick="usePowerUp('lightning')" title="สายฟ้ากระจาย">
+                ⚡
+                <div class="power-up-count" id="lightning-count">0</div>
+            </button>
+            <button class="power-up-btn shield" id="shield-btn" onclick="usePowerUp('shield')" title="โล่ป้องกัน">
+                🛡️
+                <div class="power-up-count" id="shield-count">0</div>
+            </button>
+            <button class="power-up-btn double" id="double-btn" onclick="usePowerUp('double')" title="คะแนนx2">
+                ⭐
+                <div class="power-up-count" id="double-count">0</div>
+            </button>
+        </div>
     </div>
 
     <div id="login-screen" class="screen">
         <div class="screen-content">
-            <h1 style="color:var(--deep-blue)">ศึกชิงเจ้าบทกลอน</h1>
-            <input type="text" id="p-name" placeholder="ชื่อ-นามสกุล">
+            <img src="https://nonthaphathr.github.io/uploadimg/logokhampraphan-non.png" alt="โลโก้" class="logo" onerror="this.style.display='none'">
+            <h1>อินทรวิเชียรเกม</h1>
+            <h2 style="font-size: 1.5rem; margin-top: 5px;">ฟาดสายฟ้าครุ-ลหุ</h2>
+            <p class="developer">พัฒนาโดย ครูนนทพัทธ์ หิรัญเรือง</p>
+            <input type="text" id="p-name" placeholder="ชื่อ-นามสกุล" style="margin-top: 20px;">
             
             <h2>เลือกเวลาการเล่น</h2>
             <div class="time-selector">
@@ -305,7 +413,7 @@
 
     <div id="game-over-screen" class="screen hidden">
         <div class="screen-content">
-            <h1 style="color:var(--deep-blue)">จบการแข่งขัน</h1>
+            <h1>จบการแข่งขัน</h1>
             <p>ผู้เล่น: <span id="end-name"></span></p>
             <div style="font-size: 2.5rem; color: var(--gold); font-weight: bold; margin: 10px 0;">
                 <span id="end-score">0</span>
@@ -319,79 +427,63 @@
 
 <script>
     /* ==========================================================================
-       DATA: คำครุ-ลหุ และคู่สัมผัส (จากข้อมูลที่ให้มา)
+       SOUND EFFECTS
        ========================================================================== */
-    
-    // คำครุ (30 คำ) - จัดเป็นกลุ่มคู่สัมผัส
+    const SOUNDS = {
+        shoot: new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuBzvLZiTYIG2m98OScTgwOUKzn77djGwU7k9n0zHksBSN0yPDdkUELEl+16+qnVRMKSKDh8r9vIgUs').play().catch(()=>{});
+    };
+
+    function playSound(type) {
+        try {
+            const audio = new Audio();
+            if (type === 'correct') {
+                audio.src = 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuBzvLZiTYIG2m98OScTgwOUKzn77djGwU7k9n0zHksBSN0yPDdkUELEl+16+qnVRMKSKDh8r9vIgUs';
+            } else if (type === 'wrong') {
+                audio.src = 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACAgoaGZ1lZZI2lnIJaLCZXk8POpVoQAy6M0ejAZyADJXnB5dN+LwYad7fr3pE9CQ9apu3srE0PBz+W3/C9aB0EJ4HM8NiEMwYZZ7ns4JhKCgtQqOLusmAbBDiQ1fDKdykEI3XG79yNPQkSXbPp6aVSEQhEnt/wvWoeBS6AzfDYiDUGG2q98OKbTQsN';
+            } else if (type === 'item') {
+                audio.src = 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACDh4yJb2Bid52ysp1vQDlnq9vkr2YdBkGf4PTHdjAHLoPS+N+SRQwdcL7x6KJYEw1Wq+jzwm4oBTKJ1PTSgTgJHnHB8+qlWRQOXbTr9MZ2MAc0jNn13pBBCxVhtuvvsmkcBT2U2/TOejEGJnfJ8d+TPw';
+            } else if (type === 'sampusStart') {
+                audio.src = 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACFiY6LcmVlfqOzs6B1RDxqr9/osnAbBkakyPjNfTQLMone+uKVSQ8hc8L17KdbFg9bsuz3yHg0CD+X3vrlplwYEl219fidfkAMJIHN9eC';
+            }
+            audio.volume = 0.3;
+            audio.play().catch(() => {});
+        } catch (e) {}
+    }
+
+    /* ==========================================================================
+       DATA
+       ========================================================================== */
     const KARU_PAIRS = [
-        ['กาล', 'นาน'],      // คู่ที่ 1
-        ['เมือง', 'เรือง'],  // คู่ที่ 2
-        ['บท', 'จด'],        // คู่ที่ 3
-        ['ใจ', 'ใน'],        // คู่ที่ 4
-        ['ทำ', 'นำ'],        // คู่ที่ 5
-        ['เรา', 'เงา'],      // คู่ที่ 6
-        ['เมฆ', 'เลข'],      // คู่ที่ 7
-        ['วาด', 'มาด'],      // คู่ที่ 8
-        ['โชค', 'โลก'],      // คู่ที่ 9
-        ['ศิษย์', 'คิด'],    // คู่ที่ 10
-        ['เพียร', 'เรียน'],  // คู่ที่ 11
-        ['เติม', 'เพิ่ม'],   // คู่ที่ 12
-        ['แจ้ว', 'แว่ว'],    // คู่ที่ 13
-        ['สวย', 'รวย'],      // คู่ที่ 14
-        ['หลับ', 'กลับ']     // คู่ที่ 15
+        ['กาล', 'นาน'], ['เมือง', 'เรือง'], ['บท', 'จด'], ['ใจ', 'ใน'],
+        ['ทำ', 'นำ'], ['เรา', 'เงา'], ['เมฆ', 'เลข'], ['วาด', 'มาด'],
+        ['โชค', 'โลก'], ['ศิษย์', 'คิด'], ['เพียร', 'เรียน'], ['เติม', 'เพิ่ม'],
+        ['แจ้ว', 'แว่ว'], ['สวย', 'รวย'], ['หลับ', 'กลับ']
     ];
 
-    // คำลหุ (30 คำ) - จัดเป็นกลุ่มคู่สัมผัส
     const LAHU_PAIRS = [
-        ['จะ', 'ปะ'],        // คู่ที่ 1
-        ['กะ', 'ระ'],        // คู่ที่ 2
-        ['ศิ', 'ริ'],        // คู่ที่ 3
-        ['ผลิ', 'วิ'],       // คู่ที่ 4
-        ['หึ', 'รึ'],        // คู่ที่ 5
-        ['ลุ', 'คุ'],        // คู่ที่ 6
-        ['ทุ', 'สุ'],        // คู่ที่ 7
-        ['เตะ', 'เกะ'],      // คู่ที่ 8
-        ['แกะ', 'แพะ'],      // คู่ที่ 9
-        ['แวะ', 'และ'],      // คู่ที่ 10
-        ['โละ', 'โปะ'],      // คู่ที่ 11
-        ['เคาะ', 'เจาะ'],    // คู่ที่ 12
-        ['เลาะ', 'เหมาะ'],   // คู่ที่ 13
-        ['เถอะ', 'เจอะ'],    // คู่ที่ 14
-        ['เปี๊ยะ', 'เพียะ']  // คู่ที่ 15
+        ['จะ', 'ปะ'], ['กะ', 'ระ'], ['ศิ', 'ริ'], ['ผลิ', 'วิ'],
+        ['หึ', 'รึ'], ['ลุ', 'คุ'], ['ทุ', 'สุ'], ['เตะ', 'เกะ'],
+        ['แกะ', 'แพะ'], ['แวะ', 'และ'], ['โละ', 'โปะ'], ['เคาะ', 'เจาะ'],
+        ['เลาะ', 'เหมาะ'], ['เถอะ', 'เจอะ'], ['เปี๊ยะ', 'เพียะ']
     ];
 
-    // แปลงเป็น flat arrays
     const KARU_WORDS = KARU_PAIRS.flat();
     const LAHU_WORDS = LAHU_PAIRS.flat();
     const ALL_WORDS = [...KARU_WORDS, ...LAHU_WORDS];
 
-    // สร้าง Map เพื่อหาคู่สัมผัส
     const SAMPUS_MAP = {};
-    
     KARU_PAIRS.forEach(pair => {
         SAMPUS_MAP[pair[0]] = [pair[1]];
         SAMPUS_MAP[pair[1]] = [pair[0]];
     });
-    
     LAHU_PAIRS.forEach(pair => {
         SAMPUS_MAP[pair[0]] = [pair[1]];
         SAMPUS_MAP[pair[1]] = [pair[0]];
     });
 
-    // ฟังก์ชันเช็คว่าคำนี้เป็นครุหรือไม่
-    function isKaru(word) {
-        return KARU_WORDS.includes(word);
-    }
-
-    // ฟังก์ชันเช็คว่าคำนี้เป็นลหุหรือไม่
-    function isLahu(word) {
-        return LAHU_WORDS.includes(word);
-    }
-
-    // ฟังก์ชันเช็คสัมผัส
-    function getSampusWords(word) {
-        return SAMPUS_MAP[word] || [];
-    }
+    function isKaru(word) { return KARU_WORDS.includes(word); }
+    function isLahu(word) { return LAHU_WORDS.includes(word); }
+    function getSampusWords(word) { return SAMPUS_MAP[word] || []; }
 
     /* ==========================================================================
        GAME SYSTEM
@@ -414,7 +506,25 @@
     let currentMissionType = 'karu';
     let currentTargetWord = "";
     let currentCorrectWords = [];
-    let specialItemCount = 0;
+    
+    // Sampus Mission
+    let sampusMissionActive = false;
+    let sampusPairsRemaining = 0;
+    let sampusPairsCompleted = 0;
+    
+    // Power-ups
+    let lightningCount = 0;
+    let shieldCount = 0;
+    let doubleCount = 0;
+    
+    // Active effects
+    let activeEffects = {
+        shield: 0,
+        double: 0,
+        doubleTime: 0
+    };
+    
+    // Stats
     let karuCollected = 0;
     let lahuCollected = 0;
     let sampusCollected = 0;
@@ -428,7 +538,7 @@
     let lastTime = 0;
     let spawnTimer = 0;
     let missionTimer = 0;
-    let missionChangeInterval = 20000;
+    let itemSpawnTimer = 0;
 
     function resizeCanvas() {
         const dpr = window.devicePixelRatio || 1;
@@ -473,42 +583,106 @@
         score = 0;
         timeLeft = selectedTime;
         projectiles = []; enemies = []; items = []; particles = [];
-        specialItemCount = 0;
+        lightningCount = 0;
+        shieldCount = 0;
+        doubleCount = 0;
+        activeEffects = { shield: 0, double: 0, doubleTime: 0 };
         karuCollected = 0;
         lahuCollected = 0;
         sampusCollected = 0;
+        sampusMissionActive = false;
+        sampusPairsRemaining = 0;
         
         setNewMission();
-        updateSpecialButton();
+        updatePowerUpButtons();
         gameState = 'playing';
         lastTime = performance.now();
         missionTimer = performance.now();
+        itemSpawnTimer = performance.now();
         requestAnimationFrame(gameLoop);
     }
 
     function setNewMission() {
+        // ถ้าอยู่ในโหมดสัมผัส 5 คู่ จะไม่เปลี่ยนภารกิจจนกว่าจะจบ
+        if (sampusMissionActive) return;
+        
         const rand = Math.random();
-        if (rand < 0.3) {
-            // ภารกิจครุ
+        if (rand < 0.4) {
             currentMissionType = 'karu';
             document.getElementById('mission-label').innerText = 'ภารกิจ: เก็บคำครุ';
             document.getElementById('target-word-display').innerText = 'ครุ ⚫';
-        } else if (rand < 0.6) {
-            // ภารกิจลหุ
+            document.getElementById('target-panel').classList.remove('sampus-mode');
+            document.getElementById('game-container').classList.remove('sampus-mode');
+        } else if (rand < 0.8) {
             currentMissionType = 'lahu';
             document.getElementById('mission-label').innerText = 'ภารกิจ: เก็บคำลหุ';
             document.getElementById('target-word-display').innerText = 'ลหุ ⚪';
+            document.getElementById('target-panel').classList.remove('sampus-mode');
+            document.getElementById('game-container').classList.remove('sampus-mode');
         } else {
-            // ภารกิจสัมผัส
-            currentMissionType = 'sampus';
-            const randWord = ALL_WORDS[Math.floor(Math.random() * ALL_WORDS.length)];
-            currentTargetWord = randWord;
-            currentCorrectWords = getSampusWords(randWord);
+            startSampusMission();
+        }
+    }
+
+    function startSampusMission() {
+        sampusMissionActive = true;
+        sampusPairsRemaining = 5;
+        sampusPairsCompleted = 0;
+        
+        setNextSampusPair();
+        
+        document.getElementById('target-panel').classList.add('sampus-mode');
+        document.getElementById('game-container').classList.add('sampus-mode');
+        
+        playSound('sampusStart');
+        
+        particles.push({
+            x: canvas.width / (window.devicePixelRatio || 1) / 2,
+            y: 100,
+            text: '🌟 ภารกิจสัมผัส 5 คู่! 🌟',
+            color: '#FF6B00',
+            life: 2,
+            size: 40
+        });
+    }
+
+    function setNextSampusPair() {
+        const randWord = ALL_WORDS[Math.floor(Math.random() * ALL_WORDS.length)];
+        currentTargetWord = randWord;
+        currentCorrectWords = getSampusWords(randWord);
+        currentMissionType = 'sampus';
+        
+        const remaining = sampusPairsRemaining - sampusPairsCompleted;
+        document.getElementById('mission-label').innerText = `ภารกิจสัมผัส (เหลือ ${remaining}/5)`;
+        document.getElementById('target-word-display').innerText = `"${currentTargetWord}"`;
+    }
+
+    function completeSampusPair() {
+        sampusPairsCompleted++;
+        
+        if (sampusPairsCompleted >= sampusPairsRemaining) {
+            // จบภารกิจสัมผัส
+            sampusMissionActive = false;
+            document.getElementById('target-panel').classList.remove('sampus-mode');
+            document.getElementById('game-container').classList.remove('sampus-mode');
             
-            document.getElementById('mission-label').innerText = 'ภารกิจแทรก: ยิงคำสัมผัสของ';
-            document.getElementById('target-word-display').innerText = `"${currentTargetWord}"`;
+            particles.push({
+                x: canvas.width / (window.devicePixelRatio || 1) / 2,
+                y: 150,
+                text: '🎉 ภารกิจสำเร็จ! +50 🎉',
+                color: '#FFD700',
+                life: 2,
+                size: 40
+            });
             
-            console.log(`Mission Sampus: "${currentTargetWord}" -> คำสัมผัส: [${currentCorrectWords.join(', ')}]`);
+            score += 50;
+            playSound('item');
+            
+            // กลับไปภารกิจปกติ
+            setNewMission();
+        } else {
+            // คู่ถัดไป
+            setNextSampusPair();
         }
     }
 
@@ -530,20 +704,18 @@
         };
 
         if (currentMissionType === 'karu') {
-            // ภารกิจครุ: 50% ครุ (ถูก), 50% ลหุ (ผิด)
             if (Math.random() < 0.5) {
                 enemy.word = KARU_WORDS[Math.floor(Math.random() * KARU_WORDS.length)];
                 enemy.isCorrect = true;
                 enemy.type = 'karu';
-                enemy.color = '#555'; // สีเข้มสำหรับครุ
+                enemy.color = '#555';
             } else {
                 enemy.word = LAHU_WORDS[Math.floor(Math.random() * LAHU_WORDS.length)];
                 enemy.isCorrect = false;
                 enemy.type = 'lahu';
-                enemy.color = '#f0f0f0'; // สีอ่อนสำหรับลหุ
+                enemy.color = '#f0f0f0';
             }
         } else if (currentMissionType === 'lahu') {
-            // ภารกิจลหุ: 50% ลหุ (ถูก), 50% ครุ (ผิด)
             if (Math.random() < 0.5) {
                 enemy.word = LAHU_WORDS[Math.floor(Math.random() * LAHU_WORDS.length)];
                 enemy.isCorrect = true;
@@ -556,15 +728,12 @@
                 enemy.color = '#555';
             }
         } else {
-            // ภารกิจสัมผัส
             if (currentCorrectWords.length > 0 && Math.random() < 0.5) {
-                // 50% คำที่สัมผัส (ถูก)
                 enemy.word = currentCorrectWords[Math.floor(Math.random() * currentCorrectWords.length)];
                 enemy.isCorrect = true;
                 enemy.type = 'sampus';
-                enemy.color = '#e8f5e9'; // สีเขียวอ่อน
+                enemy.color = '#FFE5B4';
             } else {
-                // 50% คำที่ไม่สัมผัส (ผิด)
                 let wrongWords = ALL_WORDS.filter(w => 
                     w !== currentTargetWord && !currentCorrectWords.includes(w)
                 );
@@ -586,12 +755,37 @@
         const dpr = window.devicePixelRatio || 1;
         const displayWidth = canvas.width / dpr;
         
+        // สุ่มประเภทไอเทม
+        const rand = Math.random();
+        let itemType, emoji;
+        
+        if (rand < 0.3) {
+            itemType = 'lightning';
+            emoji = '⚡';
+        } else if (rand < 0.5) {
+            itemType = 'time';
+            emoji = '⏰';
+        } else if (rand < 0.65) {
+            itemType = 'shield';
+            emoji = '🛡️';
+        } else if (rand < 0.8) {
+            itemType = 'double';
+            emoji = '⭐';
+        } else if (rand < 0.9) {
+            itemType = 'slow'; // ไอเทมผลเสีย
+            emoji = '🐌';
+        } else {
+            itemType = 'blind'; // ไอเทมผลเสีย
+            emoji = '💀';
+        }
+        
         items.push({
             x: Math.random() * (displayWidth - 50) + 25,
             y: -50,
             size: 40,
             speed: 3,
-            type: 'special',
+            type: itemType,
+            emoji: emoji,
             active: true
         });
     }
@@ -614,6 +808,15 @@
             ctx.drawImage(images.bg, x, y, images.bg.width*scale, images.bg.height*scale);
         }
 
+        // Update active effects
+        if (activeEffects.doubleTime > 0) {
+            activeEffects.doubleTime -= dt;
+            if (activeEffects.doubleTime <= 0) {
+                activeEffects.double = 0;
+                updateEffectDisplay();
+            }
+        }
+
         timeLeft -= dt;
         if(timeLeft <= 0) {
             timeLeft = 0;
@@ -624,14 +827,20 @@
         document.getElementById('time-val').innerText = `${minutes}:${seconds.toString().padStart(2, '0')}`;
         if(timeLeft <= 10) document.getElementById('time-val').style.color = 'red';
 
-        if (timestamp - missionTimer > missionChangeInterval) {
-            setNewMission();
+        // Mission timer - ทุก 60 วินาทีจะเริ่มภารกิจสัมผัส
+        if (!sampusMissionActive && timestamp - missionTimer > 60000) {
+            startSampusMission();
             missionTimer = timestamp;
+        }
+
+        // Item spawn - ทุก 50 วินาที
+        if (timestamp - itemSpawnTimer > 50000) {
+            spawnItem();
+            itemSpawnTimer = timestamp;
         }
 
         if(timestamp - spawnTimer > 1200) {
             spawnEnemy();
-            if(Math.random() < 0.15) spawnItem();
             spawnTimer = timestamp;
         }
 
@@ -703,7 +912,6 @@
             ctx.lineWidth = 2;
             ctx.stroke();
 
-            // สีข้อความ: ครุ=ขาว, ลหุ=ดำ
             ctx.fillStyle = (e.type === 'karu') ? '#fff' : '#000';
             ctx.font = `bold ${e.radius * 0.9}px Sarabun`;
             ctx.textAlign = 'center';
@@ -719,7 +927,7 @@
             i.y += i.speed;
             ctx.font = "50px Arial";
             ctx.textAlign = 'center';
-            ctx.fillText("⚡", i.x, i.y);
+            ctx.fillText(i.emoji, i.x, i.y);
             if(i.y > displayHeight) i.active = false;
         });
         items = items.filter(i => i.active);
@@ -729,7 +937,8 @@
             p.y -= 1; p.life -= 0.02;
             ctx.globalAlpha = Math.max(0, p.life);
             ctx.fillStyle = p.color;
-            ctx.font = "bold 30px Prompt";
+            const fontSize = p.size || 30;
+            ctx.font = `bold ${fontSize}px Prompt`;
             ctx.textAlign = 'center';
             ctx.fillText(p.text, p.x, p.y);
             ctx.globalAlpha = 1.0;
@@ -753,64 +962,90 @@
                     
                     let isCorrect = false;
                     let pointsText = "";
+                    let points = 0;
                     
                     if (currentMissionType === 'karu') {
                         isCorrect = isKaru(e.word);
-                        console.log(`Karu mission: ยิง "${e.word}" -> isKaru: ${isCorrect}`);
-                        
                         if (isCorrect) {
-                            score += 10;
+                            points = 10;
                             karuCollected++;
                             pointsText = "ครุ! +10";
                             
                             if (Math.random() < 0.2) {
-                                specialItemCount++;
-                                updateSpecialButton();
-                                particles.push({x: e.x, y: e.y - 30, text: "ได้ไอเทม!", color: "#FFD700", life: 1});
+                                lightningCount++;
+                                updatePowerUpButtons();
+                                particles.push({x: e.x, y: e.y - 30, text: "⚡ ไอเทม!", color: "#FFD700", life: 1});
                             }
                         } else {
-                            score = Math.max(0, score - 5);
-                            pointsText = "ไม่ใช่ครุ! -5";
+                            if (activeEffects.shield > 0) {
+                                activeEffects.shield--;
+                                pointsText = "โล่ป้องกัน!";
+                                updateEffectDisplay();
+                            } else {
+                                points = -5;
+                                pointsText = "ไม่ใช่ครุ! -5";
+                            }
                         }
                     } else if (currentMissionType === 'lahu') {
                         isCorrect = isLahu(e.word);
-                        console.log(`Lahu mission: ยิง "${e.word}" -> isLahu: ${isCorrect}`);
-                        
                         if (isCorrect) {
-                            score += 10;
+                            points = 10;
                             lahuCollected++;
                             pointsText = "ลหุ! +10";
                             
                             if (Math.random() < 0.2) {
-                                specialItemCount++;
-                                updateSpecialButton();
-                                particles.push({x: e.x, y: e.y - 30, text: "ได้ไอเทม!", color: "#FFD700", life: 1});
+                                lightningCount++;
+                                updatePowerUpButtons();
+                                particles.push({x: e.x, y: e.y - 30, text: "⚡ ไอเทม!", color: "#FFD700", life: 1});
                             }
                         } else {
-                            score = Math.max(0, score - 5);
-                            pointsText = "ไม่ใช่ลหุ! -5";
+                            if (activeEffects.shield > 0) {
+                                activeEffects.shield--;
+                                pointsText = "โล่ป้องกัน!";
+                                updateEffectDisplay();
+                            } else {
+                                points = -5;
+                                pointsText = "ไม่ใช่ลหุ! -5";
+                            }
                         }
                     } else {
-                        // ภารกิจสัมผัส
                         isCorrect = currentCorrectWords.includes(e.word);
-                        console.log(`Sampus mission: โจทย์ "${currentTargetWord}" ยิง "${e.word}" -> สัมผัส: ${isCorrect}`);
-                        
                         if (isCorrect) {
-                            score += 15;
+                            points = 15;
                             sampusCollected++;
                             pointsText = "สัมผัส! +15";
-                            setNewMission(); // เปลี่ยนโจทย์ทันที
+                            completeSampusPair();
                         } else {
-                            score = Math.max(0, score - 5);
-                            pointsText = "ผิดสัมผัส! -5";
+                            if (activeEffects.shield > 0) {
+                                activeEffects.shield--;
+                                pointsText = "โล่ป้องกัน!";
+                                updateEffectDisplay();
+                            } else {
+                                points = -5;
+                                pointsText = "ผิดสัมผัส! -5";
+                            }
                         }
+                    }
+                    
+                    // คูณคะแนนถ้ามีเอฟเฟค double
+                    if (activeEffects.double > 0 && points > 0) {
+                        points *= 2;
+                        pointsText += " (x2)";
+                    }
+                    
+                    score = Math.max(0, score + points);
+                    
+                    if (isCorrect) {
+                        playSound('correct');
+                    } else if (points < 0) {
+                        playSound('wrong');
                     }
                     
                     particles.push({
                         x: e.x, 
                         y: e.y, 
                         text: pointsText, 
-                        color: isCorrect ? "#FFD700" : "#ff4136", 
+                        color: isCorrect ? "#FFD700" : (points < 0 ? "#ff4136" : "#00BFFF"), 
                         life: 1
                     });
                 }
@@ -822,12 +1057,124 @@
                 if(dist < i.size + 20) {
                     p.active = false;
                     i.active = false;
-                    specialItemCount++;
-                    updateSpecialButton();
-                    particles.push({x: i.x, y: i.y, text: "ได้ไอเทม!", color: "#FFD700", life: 1});
+                    
+                    handleItemPickup(i.type, i.x, i.y);
                 }
             });
         });
+    }
+
+    function handleItemPickup(type, x, y) {
+        playSound('item');
+        
+        if (type === 'lightning') {
+            lightningCount++;
+            particles.push({x, y, text: "⚡ สายฟ้า!", color: "#FFD700", life: 1});
+        } else if (type === 'time') {
+            timeLeft += 10;
+            particles.push({x, y, text: "⏰ +10 วิ!", color: "#87CEEB", life: 1});
+        } else if (type === 'shield') {
+            shieldCount++;
+            particles.push({x, y, text: "🛡️ โล่!", color: "#2196F3", life: 1});
+        } else if (type === 'double') {
+            doubleCount++;
+            particles.push({x, y, text: "⭐ คะแนน!", color: "#9C27B0", life: 1});
+        } else if (type === 'slow') {
+            // ไอเทมผลเสีย - ทำให้ศัตรูตกช้าลง (จริงๆคือเพิ่มเวลาให้)
+            timeLeft += 5;
+            particles.push({x, y, text: "🐌 +5 วิ", color: "#FFA500", life: 1});
+        } else if (type === 'blind') {
+            // ไอเทมผลเสีย - ลดเวลา
+            timeLeft = Math.max(5, timeLeft - 10);
+            particles.push({x, y, text: "💀 -10 วิ!", color: "#ff4136", life: 1});
+        }
+        
+        updatePowerUpButtons();
+    }
+
+    function usePowerUp(type) {
+        if (gameState !== 'playing') return;
+        
+        if (type === 'lightning' && lightningCount > 0) {
+            lightningCount--;
+            for (let i = 0; i < 12; i++) {
+                const angle = (Math.PI * 2 / 12) * i;
+                projectiles.push({
+                    x: player.x,
+                    y: player.y - 50,
+                    angle: angle,
+                    speed: 15,
+                    active: true,
+                    isSpecial: true
+                });
+            }
+            particles.push({
+                x: player.x, 
+                y: player.y - 100, 
+                text: "⚡ สายฟ้ากระจาย!", 
+                color: "#FFD700", 
+                life: 1
+            });
+            playSound('item');
+        } else if (type === 'shield' && shieldCount > 0) {
+            shieldCount--;
+            activeEffects.shield = 3;
+            updateEffectDisplay();
+            particles.push({
+                x: player.x, 
+                y: player.y - 100, 
+                text: "🛡️ โล่ป้องกัน 3 ครั้ง!", 
+                color: "#2196F3", 
+                life: 1
+            });
+            playSound('item');
+        } else if (type === 'double' && doubleCount > 0) {
+            doubleCount--;
+            activeEffects.double = 1;
+            activeEffects.doubleTime = 10;
+            updateEffectDisplay();
+            particles.push({
+                x: player.x, 
+                y: player.y - 100, 
+                text: "⭐ คะแนน x2 (10วิ)", 
+                color: "#9C27B0", 
+                life: 1
+            });
+            playSound('item');
+        }
+        
+        updatePowerUpButtons();
+    }
+
+    function updatePowerUpButtons() {
+        document.getElementById('lightning-count').innerText = lightningCount;
+        document.getElementById('shield-count').innerText = shieldCount;
+        document.getElementById('double-count').innerText = doubleCount;
+        
+        document.getElementById('lightning-btn').classList.toggle('disabled', lightningCount <= 0);
+        document.getElementById('shield-btn').classList.toggle('disabled', shieldCount <= 0);
+        document.getElementById('double-btn').classList.toggle('disabled', doubleCount <= 0);
+    }
+
+    function updateEffectDisplay() {
+        const container = document.getElementById('active-effects');
+        container.innerHTML = '';
+        
+        if (activeEffects.shield > 0) {
+            const badge = document.createElement('div');
+            badge.className = 'effect-badge';
+            badge.style.borderColor = '#2196F3';
+            badge.innerText = `🛡️ โล่: ${activeEffects.shield}`;
+            container.appendChild(badge);
+        }
+        
+        if (activeEffects.double > 0) {
+            const badge = document.createElement('div');
+            badge.className = 'effect-badge';
+            badge.style.borderColor = '#9C27B0';
+            badge.innerText = `⭐ x2: ${Math.ceil(activeEffects.doubleTime)}วิ`;
+            container.appendChild(badge);
+        }
     }
 
     function shoot(e) {
@@ -862,6 +1209,8 @@
             active: true,
             isSpecial: false
         });
+        
+        playSound('shoot');
     }
 
     function updateMousePosition(e) {
@@ -871,45 +1220,6 @@
         } else {
             mouseX = e.clientX;
             mouseY = e.clientY;
-        }
-    }
-
-    function useSpecialItem() {
-        if(gameState !== 'playing' || specialItemCount <= 0) return;
-        
-        specialItemCount--;
-        updateSpecialButton();
-        
-        for (let i = 0; i < 12; i++) {
-            const angle = (Math.PI * 2 / 12) * i;
-            projectiles.push({
-                x: player.x,
-                y: player.y - 50,
-                angle: angle,
-                speed: 15,
-                active: true,
-                isSpecial: true
-            });
-        }
-        
-        particles.push({
-            x: player.x, 
-            y: player.y - 100, 
-            text: "สายฟ้ากระจาย!", 
-            color: "#FFD700", 
-            life: 1
-        });
-    }
-
-    function updateSpecialButton() {
-        const btn = document.getElementById('special-btn');
-        const count = document.getElementById('special-count');
-        count.innerText = specialItemCount;
-        
-        if (specialItemCount <= 0) {
-            btn.classList.add('disabled');
-        } else {
-            btn.classList.remove('disabled');
         }
     }
 
@@ -924,13 +1234,12 @@
         document.getElementById('game-over-screen').classList.remove('hidden');
     }
 
-    // Event Listeners
     window.addEventListener('mousemove', updateMousePosition);
     window.addEventListener('touchmove', updateMousePosition, { passive: false });
     window.addEventListener('mousedown', shoot);
     window.addEventListener('touchstart', shoot, { passive: false });
 
-    loadImages(() => console.log("Ready! คำทั้งหมด:", ALL_WORDS.length));
+    loadImages(() => console.log("🎮 อินทรวิเชียรเกม : ฟาดสายฟ้าครุ-ลหุ พร้อมแล้ว!"));
 
 </script>
 </body>
