@@ -444,10 +444,6 @@
     /* ==========================================================================
        SOUND EFFECTS
        ========================================================================== */
-    const SOUNDS = {
-        shoot: new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuBzvLZiTYIG2m98OScTgwOUKzn77djGwU7k9n0zHksBSN0yPDdkUELEl+16+qnVRMKSKDh8r9vIgUs').play().catch(()=>{});
-    };
-
     function playSound(type) {
         try {
             const audio = new Audio();
