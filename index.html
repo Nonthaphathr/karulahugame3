@@ -26,7 +26,7 @@
             position: relative;
             width: 100vw;
             height: 100vh;
-            background: linear-gradient(to bottom, #1e3c72 0%, #2a5298 100%); /* ธีมกลางคืนเพื่อให้ดูขลัง */
+            background: linear-gradient(to bottom, #1e3c72 0%, #2a5298 100%);
             overflow: hidden;
         }
 
@@ -178,21 +178,6 @@
                sound1.vowel !== '' && sound1.finalGroup !== '';
     }
 
-    // Function to get Initial Consonant Sound Group (needed for helpers)
-    function getInitialConsonantGroup(word) {
-        if (!word) return '';
-        word = word.trim().replace(/[่้๊๋์]/g, '');
-        let startIndex = 0;
-        if ("เแโใไ".includes(word.charAt(0))) startIndex = 1;
-        if (startIndex >= word.length) return '';
-        const char = word.charAt(startIndex);
-        // (Logic ย่อ: ตัดการเช็คยาวๆ เพื่อประหยัดพื้นที่ แต่ยังคง Logic หลักไว้)
-        if ('ก'.includes(char)) return 'k';
-        if ('ขฃคฅฆ'.includes(char)) return 'kh';
-        // ... (ถ้าจำเป็นต้องใช้ Homophone จริงจัง ให้ใส่เพิ่มได้ครับ)
-        return char; 
-    }
-
     function getVowelAndFinalSound(word) {
         if (!word) return { vowel: '', finalGroup: '' };
         const cleanWord = word.replace(/[่้๊๋์]/g, '');
@@ -259,22 +244,25 @@
         if (word.includes('อา') || word.includes('า')) return 'อา';
         if (word.includes('อิ')) return 'อิ';
         if (word.includes('อะ') || word.includes('ะ') || word.includes('ั')) return 'อะ';
-        return word.charAt(word.length - 1); // Default fallback
+        return word.charAt(word.length - 1);
     }
 
     /* ==========================================================================
-       PART 2: GAME DATA (คลังคำศัพท์)
+       PART 2: GAME DATA (คลังคำศัพท์) - แก้ไขเป็นกลุ่มสัมผัส
        ========================================================================== */
-    // นี่คือคลังคำศัพท์รวม เพื่อใช้สุ่มมาปล่อย
-    const WORD_DATABASE = [
-        "กาล", "งาน", "มาร", "ชาญ", "ฐาน", "สาร", "วาร", "บ้าน", "ขาน", "นาน",
-        "ภพ", "จบ", "ลบ", "รบ", "สบ", "นพ", "ศพ", "พบ", "คบ",
-        "ราช", "ชาติ", "ศาสตร์", "อาจ", "บาท", "ขาด", "ศาสน์", "คาด", "มาด",
-        "ธรรม", "กรรม", "จำ", "คำ", "ทำ", "นำ", "ขำ", "ลำ", 
-        "ไกล", "ใจ", "ไทย", "ใน", "ใด", "ใส", "วัย", "ชัย", "นัย",
-        "โลก", "โชค", "โรค", "โศก", "โยก", "โบก",
-        "เรียน", "เพียร", "เขียน", "เวียน", "เทียน"
-    ];
+    // จัดกลุ่มคำตามสัมผัสเพื่อให้ระบบสุ่มได้ง่ายขึ้น
+    const WORD_GROUPS = {
+        'กาน_อา_กน': ['กาล', 'งาน', 'มาร', 'ชาญ', 'ฐาน', 'สาร', 'วาร', 'บ้าน', 'ขาน', 'นาน', 'ปราน', 'ฉาน'],
+        'อะ_กบ': ['ภพ', 'จบ', 'ลบ', 'รบ', 'สบ', 'นพ', 'ศพ', 'พบ', 'คบ', 'กบ'],
+        'อา_กด': ['ราช', 'ชาติ', 'ศาสตร์', 'อาจ', 'บาท', 'ขาด', 'ศาสน์', 'คาด', 'มาด', 'ขาด'],
+        'อำ_กกา': ['ธรรม', 'กรรม', 'จำ', 'คำ', 'ทำ', 'นำ', 'ขำ', 'ลำ', 'สำ', 'ค่ำ'],
+        'ไอ_เกย': ['ไกล', 'ใจ', 'ไทย', 'ใน', 'ใด', 'ใส', 'วัย', 'ชัย', 'นัย', 'ลัย', 'ภัย'],
+        'โอ_กก': ['โลก', 'โชค', 'โรค', 'โศก', 'โยก', 'โบก', 'โอก', 'โคก'],
+        'เอีย_กน': ['เรียน', 'เพียร', 'เขียน', 'เวียน', 'เทียน', 'เลียน', 'เคียน']
+    };
+
+    // แปลง WORD_GROUPS เป็น array เดียวสำหรับการสุ่มโจทย์
+    const ALL_WORDS = Object.values(WORD_GROUPS).flat();
 
     /* ==========================================================================
        PART 3: GAME SYSTEM
@@ -296,7 +284,8 @@
     let score = 0;
     let timeLimit = 60;
     let timeLeft = timeLimit;
-    let currentTargetWord = ""; // คำโจทย์ปัจจุบัน
+    let currentTargetWord = "";
+    let currentCorrectWords = []; // เก็บคำที่สัมผัสกับโจทย์ปัจจุบัน
     
     // Entities
     let player = { x: 0, y: 0, w: 100, h: 100, angle: -Math.PI/2, isThrowing: false, throwTimer: 0 };
@@ -308,10 +297,19 @@
     let lastTime = 0;
     let spawnTimer = 0;
 
-    // Initialization
+    // Initialization - แก้ไขให้ภาพคมชัด
     function resizeCanvas() {
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
+        const dpr = window.devicePixelRatio || 1;
+        const displayWidth = window.innerWidth;
+        const displayHeight = window.innerHeight;
+        
+        canvas.width = displayWidth * dpr;
+        canvas.height = displayHeight * dpr;
+        canvas.style.width = displayWidth + 'px';
+        canvas.style.height = displayHeight + 'px';
+        
+        // Scale ทุกอย่างด้วย dpr
+        ctx.scale(dpr, dpr);
     }
     window.addEventListener('resize', resizeCanvas);
     resizeCanvas();
@@ -341,57 +339,63 @@
         timeLeft = timeLimit;
         projectiles = []; enemies = []; items = []; particles = [];
         
-        setNewTarget(); // ตั้งโจทย์แรก
+        setNewTarget();
         gameState = 'playing';
         requestAnimationFrame(gameLoop);
     }
 
     function setNewTarget() {
-        // สุ่มคำจาก Database มาเป็นโจทย์
-        const randIndex = Math.floor(Math.random() * WORD_DATABASE.length);
-        currentTargetWord = WORD_DATABASE[randIndex];
+        // สุ่มคำจาก ALL_WORDS มาเป็นโจทย์
+        const randIndex = Math.floor(Math.random() * ALL_WORDS.length);
+        currentTargetWord = ALL_WORDS[randIndex];
+        
+        // หาคำที่สัมผัสกับโจทย์ทั้งหมด (ไม่รวมตัวเอง)
+        currentCorrectWords = ALL_WORDS.filter(w => 
+            w !== currentTargetWord && checkSamphus(currentTargetWord, w)
+        );
+        
+        // Debug: แสดงคำที่สัมผัสใน console
+        console.log(`โจทย์: ${currentTargetWord}`);
+        console.log(`คำที่สัมผัส (${currentCorrectWords.length}):`, currentCorrectWords);
         
         // Update UI
         const display = document.getElementById('target-word-display');
         display.innerText = `"${currentTargetWord}"`;
         display.style.animation = 'none';
-        display.offsetHeight; /* trigger reflow */
+        display.offsetHeight;
         display.style.animation = 'pulse 0.5s';
     }
 
     function spawnEnemy() {
         const enemy = {
-            x: Math.random() * (canvas.width - 60) + 30,
+            x: Math.random() * (canvas.width/window.devicePixelRatio - 60) + 30,
             y: -50,
-            radius: canvas.width * 0.04,
-            speed: (canvas.height * 0.002) + Math.random() * 2,
+            radius: (canvas.width/window.devicePixelRatio) * 0.04,
+            speed: ((canvas.height/window.devicePixelRatio) * 0.002) + Math.random() * 2,
             word: "",
             active: true,
+            isCorrect: false,
             color: '#fff'
         };
 
-        // Logic การสุ่มคำให้ศัตรู:
-        // 40% เป็นคำที่สัมผัสกับโจทย์ (คำถูก)
-        // 60% เป็นคำมั่วๆ (คำผิด)
-        const isCorrectType = Math.random() < 0.4;
-        
-        if (isCorrectType) {
-            // พยายามหาคำใน DB ที่สัมผัสกับโจทย์
-            const correctWords = WORD_DATABASE.filter(w => checkSamphus(currentTargetWord, w) && w !== currentTargetWord);
-            if (correctWords.length > 0) {
-                enemy.word = correctWords[Math.floor(Math.random() * correctWords.length)];
-                enemy.color = '#e8f5e9'; // สีเขียวอ่อนๆ ช่วยใบ้นิดหน่อย (หรือเอาออกก็ได้ถ้าอยากให้ยาก)
-            } else {
-                // ถ้าหาไม่ได้จริงๆ (กรณีโจทย์ยาก) ให้สุ่มมั่ว
-                enemy.word = WORD_DATABASE[Math.floor(Math.random() * WORD_DATABASE.length)];
-            }
+        // Logic การสุ่มคำให้ศัตรู - แก้ไขให้มีคำถูกจริง
+        if (currentCorrectWords.length > 0 && Math.random() < 0.5) {
+            // 50% เป็นคำที่สัมผัสจริง
+            enemy.word = currentCorrectWords[Math.floor(Math.random() * currentCorrectWords.length)];
+            enemy.isCorrect = true;
+            enemy.color = '#e8f5e9'; // สีเขียวอ่อน
         } else {
-            // สุ่มคำที่ไม่สัมผัส (พยายามหาคำที่ไม่สัมผัส)
-            let randomWord;
-            do {
-                randomWord = WORD_DATABASE[Math.floor(Math.random() * WORD_DATABASE.length)];
-            } while (checkSamphus(currentTargetWord, randomWord)); // วนจนกว่าจะได้คำที่ไม่สัมผัส
-            enemy.word = randomWord;
+            // 50% เป็นคำที่ไม่สัมผัส
+            let wrongWords = ALL_WORDS.filter(w => 
+                !checkSamphus(currentTargetWord, w) && w !== currentTargetWord
+            );
+            
+            if (wrongWords.length > 0) {
+                enemy.word = wrongWords[Math.floor(Math.random() * wrongWords.length)];
+            } else {
+                enemy.word = ALL_WORDS[Math.floor(Math.random() * ALL_WORDS.length)];
+            }
+            enemy.isCorrect = false;
         }
 
         enemies.push(enemy);
@@ -399,11 +403,11 @@
     
     function spawnItem() {
         items.push({
-            x: Math.random() * (canvas.width - 50) + 25,
+            x: Math.random() * (canvas.width/window.devicePixelRatio - 50) + 25,
             y: -50,
             size: 40,
             speed: 3,
-            type: 'time', // เพิ่มเวลา
+            type: 'time',
             active: true
         });
     }
@@ -413,13 +417,16 @@
         const dt = (timestamp - lastTime) / 1000;
         lastTime = timestamp;
 
-        ctx.clearRect(0,0,canvas.width, canvas.height);
+        const displayWidth = canvas.width / window.devicePixelRatio;
+        const displayHeight = canvas.height / window.devicePixelRatio;
+
+        ctx.clearRect(0, 0, displayWidth, displayHeight);
 
         // 1. Draw BG
         if(images.bg) {
-            const scale = Math.max(canvas.width/images.bg.width, canvas.height/images.bg.height);
-            const x = (canvas.width - images.bg.width*scale)/2;
-            const y = (canvas.height - images.bg.height*scale)/2;
+            const scale = Math.max(displayWidth/images.bg.width, displayHeight/images.bg.height);
+            const x = (displayWidth - images.bg.width*scale)/2;
+            const y = (displayHeight - images.bg.height*scale)/2;
             ctx.drawImage(images.bg, x, y, images.bg.width*scale, images.bg.height*scale);
         }
 
@@ -433,17 +440,17 @@
         if(timeLeft <= 10) document.getElementById('time-val').style.color = 'red';
 
         // 3. Spawning
-        if(timestamp - spawnTimer > 1200) { // ทุก 1.2 วิ
+        if(timestamp - spawnTimer > 1200) {
             spawnEnemy();
             if(Math.random() < 0.1) spawnItem();
             spawnTimer = timestamp;
         }
 
         // 4. Update & Draw Player
-        const pSize = Math.min(canvas.width, canvas.height) * 0.2;
+        const pSize = Math.min(displayWidth, displayHeight) * 0.2;
         player.w = pSize; player.h = pSize;
-        player.x = canvas.width/2; 
-        player.y = canvas.height - player.h/1.5;
+        player.x = displayWidth/2; 
+        player.y = displayHeight - player.h/1.5;
         
         const dx = mouseX - player.x;
         const dy = mouseY - (player.y - 50);
@@ -454,12 +461,11 @@
         if(pImg) {
             ctx.save();
             ctx.translate(player.x, player.y);
-            // ctx.rotate(player.angle + Math.PI/2); // ถ้าอยากให้ตัวหมุนตามเมาส์
             ctx.drawImage(pImg, -player.w/2, -player.h/2, player.w, player.h);
             ctx.restore();
         }
 
-        // 5. Projectiles
+        // 5. Projectiles - แก้ไขให้ภาพคมชัด
         projectiles.forEach(p => {
             p.x += Math.cos(p.angle) * p.speed;
             p.y += Math.sin(p.angle) * p.speed;
@@ -467,11 +473,18 @@
             ctx.save();
             ctx.translate(p.x, p.y);
             ctx.rotate(p.angle + Math.PI/2);
-            if(images.lightning) ctx.drawImage(images.lightning, -15, -30, 30, 60);
-            else { ctx.fillStyle='yellow'; ctx.fillRect(-5,-10,10,20); }
+            if(images.lightning) {
+                // วาดสายฟ้าให้คมชัด
+                ctx.imageSmoothingEnabled = true;
+                ctx.imageSmoothingQuality = 'high';
+                ctx.drawImage(images.lightning, -15, -30, 30, 60);
+            } else {
+                ctx.fillStyle='yellow'; 
+                ctx.fillRect(-5,-10,10,20);
+            }
             ctx.restore();
 
-            if(p.x < 0 || p.x > canvas.width || p.y < 0 || p.y > canvas.height) p.active = false;
+            if(p.x < 0 || p.x > displayWidth || p.y < 0 || p.y > displayHeight) p.active = false;
         });
         projectiles = projectiles.filter(p => p.active);
 
@@ -493,7 +506,7 @@
             ctx.textBaseline = 'middle';
             ctx.fillText(e.word, e.x, e.y);
 
-            if(e.y > canvas.height + 50) e.active = false;
+            if(e.y > displayHeight + 50) e.active = false;
         });
         enemies = enemies.filter(e => e.active);
 
@@ -503,7 +516,7 @@
             ctx.font = "40px Arial";
             ctx.textAlign = 'center';
             ctx.fillText("⏳", i.x, i.y);
-            if(i.y > canvas.height) i.active = false;
+            if(i.y > displayHeight) i.active = false;
         });
         items = items.filter(i => i.active);
 
@@ -535,8 +548,10 @@
                     p.active = false;
                     e.active = false;
                     
-                    // *** ตรวจสอบความถูกต้องโดยใช้ Logic ครูนนทพัทธ์ ***
+                    // *** ตรวจสอบความถูกต้องโดยใช้ Logic ที่แก้ไขแล้ว ***
                     const isMatch = checkSamphus(currentTargetWord, e.word);
+                    
+                    console.log(`ยิง "${e.word}" (ควรเป็น: ${e.isCorrect ? "ถูก" : "ผิด"}, ตรวจสอบ: ${isMatch ? "สัมผัส" : "ไม่สัมผัส"})`);
                     
                     if(isMatch) {
                         score += 10;
