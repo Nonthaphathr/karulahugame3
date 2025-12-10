@@ -294,7 +294,6 @@
             font-style: italic;
         }
 
-        /* Visitor Counter - Simple Text */
         .visitor-text {
             text-align: center;
             margin-top: 15px;
@@ -309,7 +308,7 @@
             color: #667eea;
         }
 
-        input {
+        input, select {
             width: 100%; 
             padding: 10px; 
             margin: 10px 0;
@@ -384,9 +383,25 @@
             margin: 15px 0 10px;
             color: var(--deep-blue);
         }
+        
+        /* Audio Status Indicator */
+        .audio-status {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 10px;
+            font-size: 12px;
+            z-index: 9999;
+            display: none;
+        }
     </style>
 </head>
 <body>
+
+<div id="audio-status" class="audio-status">🔇 แตะหน้าจอเพื่อเปิดเสียง</div>
 
 <div id="game-container">
     <canvas id="gameCanvas"></canvas>
@@ -447,7 +462,7 @@
         <div class="screen-content">
             <h1 style="color: var(--deep-blue);">ลงทะเบียน</h1>
             
-            <select id="title" style="width: 100%; padding: 10px; margin: 10px 0; border: 2px solid #ddd; border-radius: 5px; font-size: 1rem;">
+            <select id="title">
                 <option value="">-- เลือกคำนำหน้า --</option>
                 <option value="เด็กชาย">เด็กชาย</option>
                 <option value="เด็กหญิง">เด็กหญิง</option>
@@ -455,11 +470,11 @@
                 <option value="นางสาว">นางสาว</option>
             </select>
             
-            <input type="text" id="firstname" placeholder="ชื่อ" style="width: 100%; padding: 10px; margin: 10px 0; border: 2px solid #ddd; border-radius: 5px; font-size: 1rem;">
-            <input type="text" id="lastname" placeholder="นามสกุล" style="width: 100%; padding: 10px; margin: 10px 0; border: 2px solid #ddd; border-radius: 5px; font-size: 1rem;">
-            <input type="number" id="student-number" placeholder="เลขที่" min="1" max="50" style="width: 100%; padding: 10px; margin: 10px 0; border: 2px solid #ddd; border-radius: 5px; font-size: 1rem;">
+            <input type="text" id="firstname" placeholder="ชื่อ">
+            <input type="text" id="lastname" placeholder="นามสกุล">
+            <input type="number" id="student-number" placeholder="เลขที่" min="1" max="50">
             
-            <select id="grade" style="width: 100%; padding: 10px; margin: 10px 0; border: 2px solid #ddd; border-radius: 5px; font-size: 1rem;">
+            <select id="grade">
                 <option value="">-- เลือกระดับชั้น --</option>
                 <option value="ม.1">ม.1</option>
                 <option value="ม.2">ม.2</option>
@@ -575,22 +590,18 @@
 </div>
 
 <script>
-        /* ==========================================================================
-       SOUND EFFECTS (Optimized for iOS/iPhone and PC)
+    /* ==========================================================================
+       AUDIO SYSTEM - FIXED FOR iOS/iPhone
        ========================================================================== */
-    let audioContext = null;
-    const audioBuffers = {};
-    let isAudioReady = false;
-    let audioUnlocked = false;
     
-    // สร้าง AudioContext (อาจไม่ support ใน browser เก่า)
-    try {
-        audioContext = new (window.AudioContext || window.webkitAudioContext)();
-    } catch (e) {
-        console.warn('Web Audio API not supported, using fallback');
-        audioContext = null;
-    }
+    // ตรวจสอบว่าเป็น iOS หรือไม่
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
+                  (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
     
+    console.log('Device detection - iOS:', isIOS, 'Safari:', isSafari);
+    
+    // Audio URLs
     const AUDIO_FILES = {
         startGame: 'https://nonthaphathr.github.io/uploadimg/karulahugame3-1.mp3',
         shoot: 'https://nonthaphathr.github.io/uploadimg/karulahugame3-2.mp3',
@@ -598,136 +609,138 @@
         bgMusic: 'https://nonthaphathr.github.io/uploadimg/karulahugame3-4.mp3'
     };
     
-    // สร้าง Audio objects สำหรับทุกแพลตฟอร์ม
-    const audioElements = {};
-    let audioElementsReady = false;
+    // Audio state
+    let audioUnlocked = false;
+    let audioReady = false;
+    let pendingStartGameSound = false;
     
-    function initAudioElements() {
-        Object.keys(AUDIO_FILES).forEach(key => {
-            audioElements[key] = new Audio();
-            audioElements[key].src = AUDIO_FILES[key];
-            audioElements[key].volume = 0.5;
-            audioElements[key].preload = 'auto';
-            audioElements[key].load(); // Force load
-        });
-        audioElementsReady = true;
-        console.log('Audio elements initialized');
-    }
-    
-    // เรียกทันที
-    initAudioElements();
-    
-    // Background music
-    const bgMusic = audioElements.bgMusic;
+    // สร้าง Audio objects pool
+    const audioPool = {};
+    const bgMusic = new Audio();
+    bgMusic.src = AUDIO_FILES.bgMusic;
     bgMusic.loop = true;
     bgMusic.volume = 0.3;
+    bgMusic.preload = 'auto';
     
-    // Unlock audio สำหรับ iOS/iPhone และ PC
-    function unlockAudio() {
-        if (audioUnlocked) return;
-        
-        console.log('Unlocking audio...');
-        
-        // Resume AudioContext
-        if (audioContext && audioContext.state === 'suspended') {
-            audioContext.resume();
-        }
-        
-        // เล่นเสียง silent เพื่อ unlock (สำคัญสำหรับ PC + Mobile)
-        Object.values(audioElements).forEach(audio => {
-            const playPromise = audio.play();
-            if (playPromise !== undefined) {
-                playPromise.then(() => {
-                    audio.pause();
-                    audio.currentTime = 0;
-                }).catch(err => {
-                    console.log('Silent play failed:', err);
+    // สร้าง Audio pool สำหรับแต่ละเสียง
+    function createAudioPool() {
+        Object.keys(AUDIO_FILES).forEach(key => {
+            if (key === 'bgMusic') return;
+            
+            // สร้าง 3 instances สำหรับแต่ละเสียง (เผื่อเล่นซ้อนกัน)
+            audioPool[key] = [];
+            for (let i = 0; i < 3; i++) {
+                const audio = new Audio();
+                audio.src = AUDIO_FILES[key];
+                audio.preload = 'auto';
+                audio.volume = key === 'startGame' ? 0.7 : 0.5;
+                audioPool[key].push({
+                    audio: audio,
+                    ready: false,
+                    playing: false
                 });
             }
         });
-        
-        audioUnlocked = true;
-        console.log('Audio unlocked!');
+        console.log('Audio pool created');
     }
     
-    // Preload audio buffers (Web Audio API)
-    async function preloadAudio() {
-        if (!audioContext) {
-            console.warn('AudioContext not available');
+    // Unlock และ preload audio - เรียกเมื่อ user interaction แรก
+    function unlockAndPreloadAudio() {
+        if (audioUnlocked) return Promise.resolve();
+        
+        console.log('Unlocking audio...');
+        
+        return new Promise((resolve) => {
+            const unlockPromises = [];
+            
+            // Unlock background music
+            const bgPromise = bgMusic.play().then(() => {
+                bgMusic.pause();
+                bgMusic.currentTime = 0;
+                console.log('BG music unlocked');
+            }).catch(e => console.log('BG unlock failed:', e));
+            unlockPromises.push(bgPromise);
+            
+            // Unlock ทุก audio ใน pool
+            Object.keys(audioPool).forEach(key => {
+                audioPool[key].forEach((item, index) => {
+                    const promise = item.audio.play().then(() => {
+                        item.audio.pause();
+                        item.audio.currentTime = 0;
+                        item.ready = true;
+                        console.log(`${key}[${index}] unlocked`);
+                    }).catch(e => {
+                        console.log(`${key}[${index}] unlock failed:`, e);
+                    });
+                    unlockPromises.push(promise);
+                });
+            });
+            
+            Promise.all(unlockPromises).then(() => {
+                audioUnlocked = true;
+                audioReady = true;
+                console.log('✓ All audio unlocked!');
+                
+                // ซ่อน audio status indicator
+                document.getElementById('audio-status').style.display = 'none';
+                
+                resolve();
+            });
+        });
+    }
+    
+    // เล่นเสียง
+    function playSound(type) {
+        console.log('playSound:', type, 'unlocked:', audioUnlocked);
+        
+        if (type === 'bgMusic') {
+            if (audioUnlocked) {
+                bgMusic.play().catch(e => console.log('BG play failed:', e));
+            }
             return;
         }
         
-        const loadPromises = [];
-        for (const [key, url] of Object.entries(AUDIO_FILES)) {
-            if (key === 'bgMusic') continue;
-            
-            const promise = fetch(url)
-                .then(response => response.arrayBuffer())
-                .then(arrayBuffer => audioContext.decodeAudioData(arrayBuffer))
-                .then(audioBuffer => {
-                    audioBuffers[key] = audioBuffer;
-                })
-                .catch(err => console.error('Error loading ' + key + ':', err));
-            
-            loadPromises.push(promise);
+        if (!audioPool[type]) {
+            console.warn('Unknown sound type:', type);
+            return;
         }
         
-        await Promise.all(loadPromises);
-        isAudioReady = true;
-        console.log('Audio preloaded successfully');
+        // หา audio ที่ว่างอยู่
+        const pool = audioPool[type];
+        let audioItem = pool.find(item => !item.playing);
+        
+        // ถ้าไม่มีว่าง ใช้ตัวแรก
+        if (!audioItem) {
+            audioItem = pool[0];
+            audioItem.audio.pause();
+            audioItem.audio.currentTime = 0;
+        }
+        
+        audioItem.playing = true;
+        audioItem.audio.currentTime = 0;
+        
+        const playPromise = audioItem.audio.play();
+        
+        if (playPromise !== undefined) {
+            playPromise.then(() => {
+                console.log('✓ Playing:', type);
+            }).catch(err => {
+                console.log('✗ Play failed:', type, err);
+                audioItem.playing = false;
+            });
+        }
+        
+        // Mark as not playing when ended
+        audioItem.audio.onended = () => {
+            audioItem.playing = false;
+        };
     }
     
-    function playSound(type) {
-        try {
-            console.log('playSound called:', type);
-            
-            // Unlock audio ถ้ายังไม่ได้ unlock
-            if (!audioUnlocked) {
-                unlockAudio();
-            }
-            
-            // Resume AudioContext (สำหรับ iOS)
-            if (audioContext && audioContext.state === 'suspended') {
-                audioContext.resume();
-            }
-            
-            if (type === 'bgMusic') {
-                bgMusic.play().catch(err => console.log('BG music play failed:', err));
-                return;
-            }
-            
-            // ใช้ HTML5 Audio เป็นหลัก (ทำงานได้ทั้ง PC และ Mobile)
-            if (audioElements[type]) {
-                const audio = audioElements[type];
-                
-                // Reset และเล่นใหม่
-                audio.currentTime = 0;
-                audio.volume = (type === 'startGame' || type === 'lightningSpecial') ? 0.6 : 0.5;
-                
-                const playPromise = audio.play();
-                
-                if (playPromise !== undefined) {
-                    playPromise
-                        .then(() => {
-                            console.log('✓ Sound played successfully:', type);
-                        })
-                        .catch(err => {
-                            console.error('✗ Audio play failed:', type, err);
-                            // Fallback: ลองอีกครั้งหลัง unlock
-                            setTimeout(() => {
-                                audio.play().catch(() => {});
-                            }, 100);
-                        });
-                }
-                return;
-            }
-            
-            console.warn('No audio source for:', type);
-        } catch (e) {
-            console.error('Error playing sound:', e);
-        }
+    // หยุด background music
+    function stopBgMusic() {
+        bgMusic.pause();
+        bgMusic.currentTime = 0;
     }
-
 
     /* ==========================================================================
        DATA
@@ -786,7 +799,6 @@
     let currentTargetWord = "";
     let currentCorrectWords = [];
     
-    // ข้อมูลผู้เล่น
     let playerData = {
         isRegistered: false,
         title: '',
@@ -797,25 +809,21 @@
         playTime: 180
     };
     
-    // Sampus Mission
     let sampusMissionActive = false;
     let sampusPairsRemaining = 0;
     let sampusPairsCompleted = 0;
     
-    // Power-ups
     let lightningCount = 0;
     let shieldCount = 0;
     let doubleCount = 0;
-    let magicWandCount = 0; // ไม้กายสิทธิ์
+    let magicWandCount = 0;
     
-    // Active effects
     let activeEffects = {
         shield: 0,
         double: 0,
         doubleTime: 0
     };
     
-    // Stats
     let karuCollected = 0;
     let lahuCollected = 0;
     let sampusCollected = 0;
@@ -830,8 +838,8 @@
     let spawnTimer = 0;
     let missionTimer = 0;
     let itemSpawnTimer = 0;
-    let magicWandTimer = 0; // สำหรับไอเทมพิเศษ
-    let karuLahuTimer = 0; // สำหรับสลับครุ-ลหุทุก 30 วินาที
+    let magicWandTimer = 0;
+    let karuLahuTimer = 0;
 
     function resizeCanvas() {
         const dpr = window.devicePixelRatio || 1;
@@ -859,12 +867,20 @@
         });
     }
 
+    // =============== UI NAVIGATION ===============
+    
     function showRegisterForm() {
+        // Unlock audio ตั้งแต่คลิกแรก!
+        unlockAndPreloadAudio();
+        
         document.getElementById('login-screen').classList.add('hidden');
         document.getElementById('register-screen').classList.remove('hidden');
     }
 
     function showGuestForm() {
+        // Unlock audio ตั้งแต่คลิกแรก!
+        unlockAndPreloadAudio();
+        
         document.getElementById('login-screen').classList.add('hidden');
         document.getElementById('guest-screen').classList.remove('hidden');
     }
@@ -890,47 +906,40 @@
         document.getElementById('item-guide-screen').classList.add('hidden');
     }
 
+    // =============== GAME START ===============
+
     function startGameWithRegister() {
         console.log("startGameWithRegister called");
         
-        // Unlock audio ทันที (สำหรับ iOS)
-        unlockAudio();
+        const title = document.getElementById('title').value;
+        const firstname = document.getElementById('firstname').value.trim();
+        const lastname = document.getElementById('lastname').value.trim();
+        const studentNumber = document.getElementById('student-number').value;
+        const grade = document.getElementById('grade').value;
         
-        try {
-            const title = document.getElementById('title').value;
-            const firstname = document.getElementById('firstname').value.trim();
-            const lastname = document.getElementById('lastname').value.trim();
-            const studentNumber = document.getElementById('student-number').value;
-            const grade = document.getElementById('grade').value;
-            
-            if (!title || !firstname || !lastname || !studentNumber || !grade) {
-                alert('กรุณากรอกข้อมูลให้ครบถ้วน');
-                return;
-            }
-            
-            playerData = {
-                isRegistered: true,
-                title: title,
-                firstname: firstname,
-                lastname: lastname,
-                studentNumber: parseInt(studentNumber),
-                grade: grade,
-                playTime: selectedTime
-            };
-            
-            console.log("Starting game with registration:", playerData);
-            initializeGame();
-        } catch (error) {
-            console.error("Error in startGameWithRegister:", error);
-            alert("เกิดข้อผิดพลาด: " + error.message);
+        if (!title || !firstname || !lastname || !studentNumber || !grade) {
+            alert('กรุณากรอกข้อมูลให้ครบถ้วน');
+            return;
         }
+        
+        playerData = {
+            isRegistered: true,
+            title: title,
+            firstname: firstname,
+            lastname: lastname,
+            studentNumber: parseInt(studentNumber),
+            grade: grade,
+            playTime: selectedTime
+        };
+        
+        // เริ่มเกมหลังจาก audio unlock เสร็จ
+        unlockAndPreloadAudio().then(() => {
+            initializeGame();
+        });
     }
 
     function startGameAsGuest() {
         console.log("startGameAsGuest called");
-        
-        // Unlock audio ทันที (สำหรับ iOS)
-        unlockAudio();
         
         const guestName = document.getElementById('guest-name').value.trim() || 'ผู้เล่นไม่ระบุชื่อ';
         
@@ -944,59 +953,58 @@
             playTime: selectedTime
         };
         
-        console.log("Starting game as guest:", playerData);
-        initializeGame();
+        // เริ่มเกมหลังจาก audio unlock เสร็จ
+        unlockAndPreloadAudio().then(() => {
+            initializeGame();
+        });
     }
 
     function initializeGame() {
-        try {
-            console.log("initializeGame called");
-            
-            document.getElementById('login-screen').classList.add('hidden');
-            document.getElementById('register-screen').classList.add('hidden');
-            document.getElementById('guest-screen').classList.add('hidden');
-            document.getElementById('game-over-screen').classList.add('hidden');
-            document.getElementById('game-ui').classList.remove('hidden');
-            
-            score = 0;
-            timeLeft = selectedTime;
-            projectiles = []; enemies = []; items = []; particles = [];
-            lightningCount = 0;
-            shieldCount = 0;
-            doubleCount = 0;
-            magicWandCount = 0; // reset magic wand
-            activeEffects = { shield: 0, double: 0, doubleTime: 0 };
-            karuCollected = 0;
-            lahuCollected = 0;
-            sampusCollected = 0;
-            sampusMissionActive = false;
-            sampusPairsRemaining = 0;
-            
-            setNewMission();
-            updatePowerUpButtons();
-            gameState = 'playing';
-            lastTime = performance.now();
-            missionTimer = performance.now();
-            itemSpawnTimer = performance.now();
-            magicWandTimer = performance.now(); // เริ่มนับเวลาไอเทม magic wand
-            karuLahuTimer = performance.now(); // เริ่มนับเวลาสลับครุ-ลหุ
-            requestAnimationFrame(gameLoop);
-            
-            // เล่นเสียงเริ่มเกม (ครั้งเดียว) แล้วรอ 4 วิก่อนเล่นเพลงพื้นหลัง
-            playSound('startGame');
-            setTimeout(() => {
-                playSound('bgMusic');
-            }, 4000);
-            
-            console.log("Game started successfully");
-        } catch (error) {
-            console.error("Error in initializeGame:", error);
-            alert("เกิดข้อผิดพลาด: " + error.message);
-        }
+        console.log("initializeGame called");
+        
+        document.getElementById('login-screen').classList.add('hidden');
+        document.getElementById('register-screen').classList.add('hidden');
+        document.getElementById('guest-screen').classList.add('hidden');
+        document.getElementById('game-over-screen').classList.add('hidden');
+        document.getElementById('game-ui').classList.remove('hidden');
+        
+        score = 0;
+        timeLeft = selectedTime;
+        projectiles = []; enemies = []; items = []; particles = [];
+        lightningCount = 0;
+        shieldCount = 0;
+        doubleCount = 0;
+        magicWandCount = 0;
+        activeEffects = { shield: 0, double: 0, doubleTime: 0 };
+        karuCollected = 0;
+        lahuCollected = 0;
+        sampusCollected = 0;
+        sampusMissionActive = false;
+        sampusPairsRemaining = 0;
+        
+        setNewMission();
+        updatePowerUpButtons();
+        gameState = 'playing';
+        lastTime = performance.now();
+        missionTimer = performance.now();
+        itemSpawnTimer = performance.now();
+        magicWandTimer = performance.now();
+        karuLahuTimer = performance.now();
+        
+        // เล่นเสียงเริ่มเกมทันที
+        playSound('startGame');
+        
+        // เล่น background music หลังจาก 4 วินาที
+        setTimeout(() => {
+            playSound('bgMusic');
+        }, 4000);
+        
+        requestAnimationFrame(gameLoop);
+        
+        console.log("Game started successfully");
     }
 
     function setNewMission() {
-        // ถ้าอยู่ในโหมดสัมผัส 5 คู่ จะไม่เปลี่ยนภารกิจจนกว่าจะจบ
         if (sampusMissionActive) return;
         
         const rand = Math.random();
@@ -1027,8 +1035,6 @@
         document.getElementById('target-panel').classList.add('sampus-mode');
         document.getElementById('game-container').classList.add('sampus-mode');
         
-        playSound('sampusStart');
-        
         particles.push({
             x: canvas.width / (window.devicePixelRatio || 1) / 2,
             y: 100,
@@ -1054,7 +1060,6 @@
         sampusPairsCompleted++;
         
         if (sampusPairsCompleted >= sampusPairsRemaining) {
-            // จบภารกิจสัมผัส
             sampusMissionActive = false;
             document.getElementById('target-panel').classList.remove('sampus-mode');
             document.getElementById('game-container').classList.remove('sampus-mode');
@@ -1069,12 +1074,8 @@
             });
             
             score += 50;
-            playSound('item');
-            
-            // กลับไปภารกิจปกติ
             setNewMission();
         } else {
-            // คู่ถัดไป
             setNextSampusPair();
         }
     }
@@ -1148,7 +1149,6 @@
         const dpr = window.devicePixelRatio || 1;
         const displayWidth = canvas.width / dpr;
         
-        // สุ่มประเภทไอเทม
         const rand = Math.random();
         let itemType, realEmoji;
         
@@ -1165,10 +1165,10 @@
             itemType = 'double';
             realEmoji = '⭐';
         } else if (rand < 0.85) {
-            itemType = 'slow'; // ไอเทมผลเสีย
+            itemType = 'slow';
             realEmoji = '🐌';
         } else {
-            itemType = 'blind'; // ไอเทมผลเสีย
+            itemType = 'blind';
             realEmoji = '💀';
         }
         
@@ -1178,8 +1178,8 @@
             size: 40,
             speed: 3,
             type: itemType,
-            emoji: '❓', // แสดงเป็น ? ทั้งหมด
-            realEmoji: realEmoji, // เก็บ emoji จริงไว้
+            emoji: '❓',
+            realEmoji: realEmoji,
             active: true,
             isMagicWand: false
         });
@@ -1195,7 +1195,7 @@
             size: 50,
             speed: 2.5,
             type: 'magicwand',
-            emoji: '🪄', // ไม้กายสิทธิ์ - ไม่ใช่ "?"
+            emoji: '🪄',
             realEmoji: '🪄',
             active: true,
             isMagicWand: true
@@ -1229,7 +1229,6 @@
             ctx.drawImage(images.bg, x, y, images.bg.width*scale, images.bg.height*scale);
         }
 
-        // Update active effects
         if (activeEffects.doubleTime > 0) {
             activeEffects.doubleTime -= dt;
             if (activeEffects.doubleTime <= 0) {
@@ -1248,7 +1247,6 @@
         const seconds = Math.ceil(timeLeft % 60);
         document.getElementById('time-val').innerText = `${minutes}:${seconds.toString().padStart(2, '0')}`;
         
-        // กระพริบสีแดงก่อนหมดเวลา 5 วินาที
         if(timeLeft <= 5) {
             document.getElementById('time-val').style.color = 'red';
             const flashIntensity = Math.sin(timestamp / 200) * 0.5 + 0.5;
@@ -1260,7 +1258,6 @@
             document.getElementById('game-container').style.boxShadow = 'none';
         }
 
-        // สลับภารกิจครุ-ลหุทุก 30 วินาที (ยกเว้นตอนภารกิจสัมผัส)
         if (!sampusMissionActive && timestamp - karuLahuTimer > 30000) {
             if (currentMissionType === 'karu') {
                 currentMissionType = 'lahu';
@@ -1274,11 +1271,6 @@
             karuLahuTimer = timestamp;
         }
 
-        // Mission timer - ภารกิจสัมผัสเกิดตามเวลาที่เหมาะสม
-        // เงื่อนไข: 
-        // 1. ต้องเล่นไปแล้วอย่างน้อย 45 วินาที
-        // 2. ต้องมีเวลาเหลืออย่างน้อย 30 วินาที  
-        // 3. ห่างจากภารกิจสัมผัสครั้งก่อนอย่างน้อย 60 วินาที
         const timePlayed = selectedTime - timeLeft;
         if (!sampusMissionActive && 
             timestamp - missionTimer > 60000 && 
@@ -1288,13 +1280,11 @@
             missionTimer = timestamp;
         }
 
-        // Item spawn - ทุก 15 วินาที
         if (timestamp - itemSpawnTimer > 15000) {
             spawnItem();
             itemSpawnTimer = timestamp;
         }
 
-        // Magic Wand spawn - ทุก 50 วินาที (ไอเทมพิเศษ)
         if (timestamp - magicWandTimer > 50000) {
             spawnMagicWand();
             magicWandTimer = timestamp;
@@ -1488,19 +1478,12 @@
                         }
                     }
                     
-                    // คูณคะแนนถ้ามีเอฟเฟค double
                     if (activeEffects.double > 0 && points > 0) {
                         points *= 2;
                         pointsText += " (x2)";
                     }
                     
                     score = Math.max(0, score + points);
-                    
-                    if (isCorrect) {
-                        playSound('correct');
-                    } else if (points < 0) {
-                        playSound('wrong');
-                    }
                     
                     particles.push({
                         x: e.x, 
@@ -1526,15 +1509,12 @@
     }
 
     function handleItemPickup(item) {
-        playSound('item');
-        
         const type = item.type;
         const x = item.x;
         const y = item.y;
         const emoji = item.realEmoji;
         
         if (type === 'magicwand') {
-            // เก็บไว้กดใช้ (เหมือนสายฟ้า)
             magicWandCount++;
             particles.push({x, y, text: `${emoji} ไม้กายสิทธิ์!`, color: "#FF1493", life: 1.5, size: 35});
         } else if (type === 'lightning') {
@@ -1550,11 +1530,9 @@
             doubleCount++;
             particles.push({x, y, text: `${emoji} คะแนน!`, color: "#9C27B0", life: 1});
         } else if (type === 'slow') {
-            // ไอเทมผลเสีย - ทำให้ศัตรูตกช้าลง (จริงๆคือเพิ่มเวลาให้)
             timeLeft += 5;
             particles.push({x, y, text: `${emoji} +5 วิ`, color: "#FFA500", life: 1});
         } else if (type === 'blind') {
-            // ไอเทมผลเสีย - ลดเวลา
             timeLeft = Math.max(5, timeLeft - 10);
             particles.push({x, y, text: `${emoji} -10 วิ!`, color: "#ff4136", life: 1});
         }
@@ -1563,22 +1541,18 @@
     }
 
     function transformAllEnemies() {
-        // เปลี่ยนคำทั้งหมดให้ตรงกับภารกิจปัจจุบัน
         enemies.forEach(e => {
             if (currentMissionType === 'karu') {
-                // เปลี่ยนเป็นคำครุทั้งหมด
                 e.word = KARU_WORDS[Math.floor(Math.random() * KARU_WORDS.length)];
                 e.isCorrect = true;
                 e.type = 'karu';
                 e.color = '#555';
             } else if (currentMissionType === 'lahu') {
-                // เปลี่ยนเป็นคำลหุทั้งหมด
                 e.word = LAHU_WORDS[Math.floor(Math.random() * LAHU_WORDS.length)];
                 e.isCorrect = true;
                 e.type = 'lahu';
                 e.color = '#f0f0f0';
             } else if (currentMissionType === 'sampus') {
-                // เปลี่ยนเป็นคำสัมผัสทั้งหมด
                 if (currentCorrectWords.length > 0) {
                     e.word = currentCorrectWords[Math.floor(Math.random() * currentCorrectWords.length)];
                     e.isCorrect = true;
@@ -1588,7 +1562,7 @@
             }
         });
         
-        playSound('sampusStart'); // เสียงพิเศษ
+        playSound('lightningSpecial');
     }
 
     function usePowerUp(type) {
@@ -1626,7 +1600,6 @@
                 color: "#2196F3", 
                 life: 1
             });
-            playSound('item');
         } else if (type === 'double' && doubleCount > 0) {
             doubleCount--;
             activeEffects.double = 1;
@@ -1639,7 +1612,6 @@
                 color: "#9C27B0", 
                 life: 1
             });
-            playSound('item');
         } else if (type === 'magicwand' && magicWandCount > 0) {
             magicWandCount--;
             transformAllEnemies();
@@ -1739,7 +1711,6 @@
     function fadeToGameOver() {
         gameState = 'fading';
         
-        // Fade effect
         const fadeOverlay = document.createElement('div');
         fadeOverlay.style.cssText = `
             position: fixed;
@@ -1768,11 +1739,8 @@
     function endGame() {
         gameState = 'gameover';
         
-        // หยุดเพลงประกอบ
-        bgMusic.pause();
-        bgMusic.currentTime = 0;
+        stopBgMusic();
         
-        // แสดงผลลัพธ์
         const playerName = playerData.isRegistered 
             ? `${playerData.title}${playerData.firstname} ${playerData.lastname}`
             : playerData.firstname;
@@ -1785,7 +1753,6 @@
         document.getElementById('end-sampus').innerText = sampusCollected;
         document.getElementById('game-over-screen').classList.remove('hidden');
         
-        // บันทึกข้อมูลถ้าลงทะเบียน
         if (playerData.isRegistered) {
             saveToGoogleSheet();
         }
@@ -1824,36 +1791,32 @@
         });
     }
 
+    // Event Listeners
     window.addEventListener('mousemove', updateMousePosition);
     window.addEventListener('touchmove', updateMousePosition, { passive: false });
     window.addEventListener('mousedown', shoot);
     window.addEventListener('touchstart', shoot, { passive: false });
 
+    // Initialize
+    createAudioPool();
+    
     loadImages(() => {
         console.log("🎮 อินทรวิเชียรเกม : ฟาดสายฟ้าครุ-ลหุ พร้อมแล้ว!");
-        // Preload เสียงแบบ async (ไม่ block)
-        preloadAudio().catch(err => {
-            console.error('Audio preload failed:', err);
-            isAudioReady = false;
-        });
     });
 
-    // Visitor Counter - CountAPI
+    // Visitor Counter
     (function() {
         const namespace = 'indravichien-game';
         const key = 'visits';
         
-        // Hit counter API
         fetch(`https://api.counterapi.dev/v1/${namespace}/${key}/up`, {
             method: 'GET'
         })
         .then(response => response.json())
         .then(data => {
             if (data && data.count) {
-                // แสดงตัวเลขแบบสวยงาม (มี comma)
                 const formattedCount = data.count.toLocaleString('th-TH');
                 
-                // Update ทั้ง 3 หน้า
                 const counters = [
                     document.getElementById('visitor-count-login'),
                     document.getElementById('visitor-count'),
@@ -1863,8 +1826,6 @@
                 counters.forEach(counter => {
                     if (counter) {
                         counter.textContent = formattedCount;
-                        
-                        // เอฟเฟค fade in
                         counter.style.opacity = '0';
                         setTimeout(() => {
                             counter.style.transition = 'opacity 0.5s ease';
@@ -1872,13 +1833,10 @@
                         }, 100);
                     }
                 });
-                
-                console.log('Visitor count updated:', formattedCount);
             }
         })
         .catch(error => {
             console.error('Error fetching visitor count:', error);
-            // แสดง --- ถ้า error
             ['visitor-count-login', 'visitor-count', 'visitor-count-guest'].forEach(id => {
                 const elem = document.getElementById(id);
                 if (elem) elem.textContent = '---';
