@@ -551,9 +551,17 @@
         /* ==========================================================================
        SOUND EFFECTS (Web Audio API for iOS compatibility)
        ========================================================================== */
-    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    let audioContext = null;
     const audioBuffers = {};
     let isAudioReady = false;
+    
+    // สร้าง AudioContext (อาจไม่ support ใน browser เก่า)
+    try {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    } catch (e) {
+        console.warn('Web Audio API not supported, using fallback');
+        audioContext = null;
+    }
     
     const AUDIO_FILES = {
         startGame: 'https://nonthaphathr.github.io/uploadimg/karulahugame3-1.mp3',
@@ -569,6 +577,11 @@
     
     // Preload audio buffers
     async function preloadAudio() {
+        if (!audioContext) {
+            console.warn('AudioContext not available');
+            return;
+        }
+        
         const loadPromises = [];
         for (const [key, url] of Object.entries(AUDIO_FILES)) {
             if (key === 'bgMusic') continue;
@@ -579,7 +592,7 @@
                 .then(audioBuffer => {
                     audioBuffers[key] = audioBuffer;
                 })
-                .catch(err => console.error(\`Error loading \${key}:\`, err));
+                .catch(err => console.error('Error loading ' + key + ':', err));
             
             loadPromises.push(promise);
         }
@@ -592,7 +605,7 @@
     function playSound(type) {
         try {
             // Resume AudioContext (สำหรับ iOS)
-            if (audioContext.state === 'suspended') {
+            if (audioContext && audioContext.state === 'suspended') {
                 audioContext.resume();
             }
             
@@ -601,8 +614,8 @@
                 return;
             }
             
-            // ใช้ Web Audio API สำหรับเสียงสั้นๆ
-            if (isAudioReady && audioBuffers[type]) {
+            // ใช้ Web Audio API สำหรับเสียงสั้นๆ (ถ้ามี)
+            if (audioContext && isAudioReady && audioBuffers[type]) {
                 const source = audioContext.createBufferSource();
                 source.buffer = audioBuffers[type];
                 
@@ -803,29 +816,36 @@
     }
 
     function startGameWithRegister() {
-        const title = document.getElementById('title').value;
-        const firstname = document.getElementById('firstname').value.trim();
-        const lastname = document.getElementById('lastname').value.trim();
-        const studentNumber = document.getElementById('student-number').value;
-        const grade = document.getElementById('grade').value;
+        console.log("startGameWithRegister called");
         
-        if (!title || !firstname || !lastname || !studentNumber || !grade) {
-            alert('กรุณากรอกข้อมูลให้ครบถ้วน');
-            return;
+        try {
+            const title = document.getElementById('title').value;
+            const firstname = document.getElementById('firstname').value.trim();
+            const lastname = document.getElementById('lastname').value.trim();
+            const studentNumber = document.getElementById('student-number').value;
+            const grade = document.getElementById('grade').value;
+            
+            if (!title || !firstname || !lastname || !studentNumber || !grade) {
+                alert('กรุณากรอกข้อมูลให้ครบถ้วน');
+                return;
+            }
+            
+            playerData = {
+                isRegistered: true,
+                title: title,
+                firstname: firstname,
+                lastname: lastname,
+                studentNumber: parseInt(studentNumber),
+                grade: grade,
+                playTime: selectedTime
+            };
+            
+            console.log("Starting game with registration:", playerData);
+            initializeGame();
+        } catch (error) {
+            console.error("Error in startGameWithRegister:", error);
+            alert("เกิดข้อผิดพลาด: " + error.message);
         }
-        
-        playerData = {
-            isRegistered: true,
-            title: title,
-            firstname: firstname,
-            lastname: lastname,
-            studentNumber: parseInt(studentNumber),
-            grade: grade,
-            playTime: selectedTime
-        };
-        
-        console.log("Starting game with registration:", playerData);
-        initializeGame();
     }
 
     function startGameAsGuest() {
@@ -846,42 +866,50 @@
     }
 
     function initializeGame() {
-        document.getElementById('login-screen').classList.add('hidden');
-        document.getElementById('register-screen').classList.add('hidden');
-        document.getElementById('guest-screen').classList.add('hidden');
-        document.getElementById('game-over-screen').classList.add('hidden');
-        document.getElementById('game-ui').classList.remove('hidden');
-        
-        score = 0;
-        timeLeft = selectedTime;
-        projectiles = []; enemies = []; items = []; particles = [];
-        lightningCount = 0;
-        shieldCount = 0;
-        doubleCount = 0;
-        activeEffects = { shield: 0, double: 0, doubleTime: 0 };
-        karuCollected = 0;
-        lahuCollected = 0;
-        sampusCollected = 0;
-        sampusMissionActive = false;
-        sampusPairsRemaining = 0;
-        
-        setNewMission();
-        updatePowerUpButtons();
-        gameState = 'playing';
-        lastTime = performance.now();
-        missionTimer = performance.now();
-        itemSpawnTimer = performance.now();
-        magicWandTimer = performance.now(); // เริ่มนับเวลาไอเทม magic wand
-        karuLahuTimer = performance.now(); // เริ่มนับเวลาสลับครุ-ลหุ
-        requestAnimationFrame(gameLoop);
-        
-        // เล่นเสียงเริ่มเกม (ครั้งเดียว) แล้วรอ 4 วิก่อนเล่นเพลงพื้นหลัง
-        playSound('startGame');
-        setTimeout(() => {
-            playSound('bgMusic');
-        }, 4000);
-        
-        console.log("Game started successfully");
+        try {
+            console.log("initializeGame called");
+            
+            document.getElementById('login-screen').classList.add('hidden');
+            document.getElementById('register-screen').classList.add('hidden');
+            document.getElementById('guest-screen').classList.add('hidden');
+            document.getElementById('game-over-screen').classList.add('hidden');
+            document.getElementById('game-ui').classList.remove('hidden');
+            
+            score = 0;
+            timeLeft = selectedTime;
+            projectiles = []; enemies = []; items = []; particles = [];
+            lightningCount = 0;
+            shieldCount = 0;
+            doubleCount = 0;
+            magicWandCount = 0; // reset magic wand
+            activeEffects = { shield: 0, double: 0, doubleTime: 0 };
+            karuCollected = 0;
+            lahuCollected = 0;
+            sampusCollected = 0;
+            sampusMissionActive = false;
+            sampusPairsRemaining = 0;
+            
+            setNewMission();
+            updatePowerUpButtons();
+            gameState = 'playing';
+            lastTime = performance.now();
+            missionTimer = performance.now();
+            itemSpawnTimer = performance.now();
+            magicWandTimer = performance.now(); // เริ่มนับเวลาไอเทม magic wand
+            karuLahuTimer = performance.now(); // เริ่มนับเวลาสลับครุ-ลหุ
+            requestAnimationFrame(gameLoop);
+            
+            // เล่นเสียงเริ่มเกม (ครั้งเดียว) แล้วรอ 4 วิก่อนเล่นเพลงพื้นหลัง
+            playSound('startGame');
+            setTimeout(() => {
+                playSound('bgMusic');
+            }, 4000);
+            
+            console.log("Game started successfully");
+        } catch (error) {
+            console.error("Error in initializeGame:", error);
+            alert("เกิดข้อผิดพลาด: " + error.message);
+        }
     }
 
     function setNewMission() {
@@ -1720,7 +1748,11 @@
 
     loadImages(() => {
         console.log("🎮 อินทรวิเชียรเกม : ฟาดสายฟ้าครุ-ลหุ พร้อมแล้ว!");
-        preloadAudio(); // Preload เสียงสำหรับ iOS
+        // Preload เสียงแบบ async (ไม่ block)
+        preloadAudio().catch(err => {
+            console.error('Audio preload failed:', err);
+            isAudioReady = false;
+        });
     });
 
 </script>
