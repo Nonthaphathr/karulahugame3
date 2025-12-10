@@ -6,6 +6,9 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>อินทรวิเชียรเกม : ฟาดสายฟ้าครุ-ลหุ</title>
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="https://nonthaphathr.github.io/uploadimg/logokhampraphan-non.png">
+    <link rel="apple-touch-icon" href="https://nonthaphathr.github.io/uploadimg/logokhampraphan-non.png">
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         * { 
@@ -46,6 +49,10 @@
         #game-container.sampus-mode {
             background: linear-gradient(to bottom, #FFA500 0%, #FFD700 50%, #FFA500 100%);
             animation: sampusGlow 2s infinite;
+        }
+
+        #game-container.slowmo-mode {
+            filter: hue-rotate(30deg) saturate(1.3);
         }
 
         @keyframes sampusGlow {
@@ -208,12 +215,16 @@
             background: linear-gradient(45deg, #FFD700, #FFA500);
         }
 
-        .power-up-btn.shield {
-            background: linear-gradient(45deg, #2196F3, #1976D2);
+        .power-up-btn.summon {
+            background: linear-gradient(45deg, #00BCD4, #0097A7);
         }
 
         .power-up-btn.double {
             background: linear-gradient(45deg, #9C27B0, #7B1FA2);
+        }
+
+        .power-up-btn.magicwand {
+            background: linear-gradient(45deg, #E91E63, #C2185B);
         }
 
         .power-up-count {
@@ -383,28 +394,31 @@
             margin: 15px 0 10px;
             color: var(--deep-blue);
         }
-        
-        /* Audio Status Indicator */
-        .audio-status {
+
+        /* Slow Motion Visual Effect */
+        .slowmo-overlay {
             position: fixed;
-            top: 10px;
-            left: 10px;
-            background: rgba(0,0,0,0.7);
-            color: white;
-            padding: 5px 10px;
-            border-radius: 10px;
-            font-size: 12px;
-            z-index: 9999;
-            display: none;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 50;
+            background: radial-gradient(ellipse at center, transparent 0%, rgba(255,105,180,0.2) 100%);
+            animation: slowmoPulse 0.5s infinite;
+        }
+
+        @keyframes slowmoPulse {
+            0%, 100% { opacity: 0.5; }
+            50% { opacity: 0.8; }
         }
     </style>
 </head>
 <body>
 
-<div id="audio-status" class="audio-status">🔇 แตะหน้าจอเพื่อเปิดเสียง</div>
-
 <div id="game-container">
     <canvas id="gameCanvas"></canvas>
+    <div id="slowmo-overlay" class="slowmo-overlay hidden"></div>
 
     <div class="ui-layer hidden" id="game-ui">
         <div class="top-bar">
@@ -425,9 +439,9 @@
                 ⚡
                 <div class="power-up-count" id="lightning-count">0</div>
             </button>
-            <button class="power-up-btn shield" id="shield-btn" onclick="usePowerUp('shield')" title="โล่ป้องกัน">
-                🛡️
-                <div class="power-up-count" id="shield-count">0</div>
+            <button class="power-up-btn summon" id="summon-btn" onclick="usePowerUp('summon')" title="เรียกคำ">
+                📢
+                <div class="power-up-count" id="summon-count">0</div>
             </button>
             <button class="power-up-btn double" id="double-btn" onclick="usePowerUp('double')" title="คะแนนx2">
                 ⭐
@@ -544,7 +558,7 @@
                 <h3 style="color: #FF1493; margin: 15px 0 10px;">🌟 ไอเทมพิเศษ</h3>
                 <div style="padding: 10px; background: #FFE4F7; border-radius: 10px; margin: 8px 0; border: 2px solid #FF1493;">
                     <strong>🪄 ไม้กายสิทธิ์</strong><br>
-                    เปลี่ยนคำทั้งหมดในจอให้ตรงกับภารกิจ!<br>
+                    เปลี่ยนคำทั้งหมดในจอให้ตรงกับภารกิจ + สโลว์โมชัน 3 วินาที!<br>
                     <small>(ปรากฏทุก 1 นาที และไม่ซ่อนเป็น ❓)</small>
                 </div>
                 
@@ -557,9 +571,9 @@
                     <strong>⏰ เพิ่มเวลา</strong><br>
                     เพิ่มเวลา +10 วินาที
                 </div>
-                <div style="padding: 10px; background: #f0f0f0; border-radius: 10px; margin: 8px 0;">
-                    <strong>🛡️ โล่ป้องกัน</strong><br>
-                    ป้องกันการหักคะแนน 3 ครั้ง กดปุ่มเพื่อใช้
+                <div style="padding: 10px; background: #E0F7FA; border-radius: 10px; margin: 8px 0; border: 2px solid #00BCD4;">
+                    <strong>📢 เรียกคำ</strong><br>
+                    เรียกคำที่ถูกต้องตามภารกิจออกมามากเป็นพิเศษ 5 วินาที!
                 </div>
                 <div style="padding: 10px; background: #f0f0f0; border-radius: 10px; margin: 8px 0;">
                     <strong>⭐ คะแนน x2</strong><br>
@@ -584,22 +598,20 @@
                 </div>
             </div>
             
-            <button class="btn" onclick="closeItemGuide()">เข้าใจแล้ว เริ่มเกม!</button>
+            <button class="btn" onclick="closeItemGuide()">เข้าใจแล้ว!</button>
         </div>
     </div>
 </div>
 
 <script>
     /* ==========================================================================
-       AUDIO SYSTEM - FIXED FOR iOS/iPhone
+       AUDIO SYSTEM - FIXED FOR iOS/iPhone v2
        ========================================================================== */
     
-    // ตรวจสอบว่าเป็น iOS หรือไม่
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
                   (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-    const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
     
-    console.log('Device detection - iOS:', isIOS, 'Safari:', isSafari);
+    console.log('Device detection - iOS:', isIOS);
     
     // Audio URLs
     const AUDIO_FILES = {
@@ -611,10 +623,9 @@
     
     // Audio state
     let audioUnlocked = false;
-    let audioReady = false;
-    let pendingStartGameSound = false;
+    let startGameSoundPlayed = false; // ป้องกันเล่นซ้ำ
     
-    // สร้าง Audio objects pool
+    // Audio Pool
     const audioPool = {};
     const bgMusic = new Audio();
     bgMusic.src = AUDIO_FILES.bgMusic;
@@ -622,21 +633,22 @@
     bgMusic.volume = 0.3;
     bgMusic.preload = 'auto';
     
-    // สร้าง Audio pool สำหรับแต่ละเสียง
+    // สร้าง Audio pool
     function createAudioPool() {
         Object.keys(AUDIO_FILES).forEach(key => {
             if (key === 'bgMusic') return;
             
-            // สร้าง 3 instances สำหรับแต่ละเสียง (เผื่อเล่นซ้อนกัน)
             audioPool[key] = [];
-            for (let i = 0; i < 3; i++) {
+            // สร้าง 5 instances สำหรับเสียง shoot (ใช้บ่อย)
+            const count = key === 'shoot' ? 5 : 3;
+            for (let i = 0; i < count; i++) {
                 const audio = new Audio();
                 audio.src = AUDIO_FILES[key];
                 audio.preload = 'auto';
-                audio.volume = key === 'startGame' ? 0.7 : 0.5;
+                audio.volume = key === 'startGame' ? 0.7 : (key === 'shoot' ? 0.4 : 0.5);
+                audio.load(); // Force preload
                 audioPool[key].push({
                     audio: audio,
-                    ready: false,
                     playing: false
                 });
             }
@@ -644,33 +656,35 @@
         console.log('Audio pool created');
     }
     
-    // Unlock และ preload audio - เรียกเมื่อ user interaction แรก
-    function unlockAndPreloadAudio() {
+    // Unlock audio - เรียกตอน user interaction แรก
+    // **ไม่เล่นเสียงใดๆ** แค่ unlock เฉยๆ
+    function unlockAudio() {
         if (audioUnlocked) return Promise.resolve();
         
-        console.log('Unlocking audio...');
+        console.log('Unlocking audio (silent)...');
         
         return new Promise((resolve) => {
             const unlockPromises = [];
             
-            // Unlock background music
+            // Unlock BG music
+            bgMusic.muted = true;
             const bgPromise = bgMusic.play().then(() => {
                 bgMusic.pause();
                 bgMusic.currentTime = 0;
-                console.log('BG music unlocked');
-            }).catch(e => console.log('BG unlock failed:', e));
+                bgMusic.muted = false;
+            }).catch(() => {});
             unlockPromises.push(bgPromise);
             
-            // Unlock ทุก audio ใน pool
+            // Unlock ทุก audio ใน pool (muted)
             Object.keys(audioPool).forEach(key => {
-                audioPool[key].forEach((item, index) => {
+                audioPool[key].forEach((item) => {
+                    item.audio.muted = true;
                     const promise = item.audio.play().then(() => {
                         item.audio.pause();
                         item.audio.currentTime = 0;
-                        item.ready = true;
-                        console.log(`${key}[${index}] unlocked`);
-                    }).catch(e => {
-                        console.log(`${key}[${index}] unlock failed:`, e);
+                        item.audio.muted = false;
+                    }).catch(() => {
+                        item.audio.muted = false;
                     });
                     unlockPromises.push(promise);
                 });
@@ -678,12 +692,7 @@
             
             Promise.all(unlockPromises).then(() => {
                 audioUnlocked = true;
-                audioReady = true;
-                console.log('✓ All audio unlocked!');
-                
-                // ซ่อน audio status indicator
-                document.getElementById('audio-status').style.display = 'none';
-                
+                console.log('✓ Audio unlocked (no sound played)');
                 resolve();
             });
         });
@@ -691,12 +700,14 @@
     
     // เล่นเสียง
     function playSound(type) {
-        console.log('playSound:', type, 'unlocked:', audioUnlocked);
+        if (!audioUnlocked) {
+            console.log('Audio not unlocked yet, skipping:', type);
+            return;
+        }
         
         if (type === 'bgMusic') {
-            if (audioUnlocked) {
-                bgMusic.play().catch(e => console.log('BG play failed:', e));
-            }
+            bgMusic.currentTime = 0;
+            bgMusic.play().catch(e => console.log('BG play failed:', e));
             return;
         }
         
@@ -705,38 +716,31 @@
             return;
         }
         
-        // หา audio ที่ว่างอยู่
+        // หา audio ที่ว่าง
         const pool = audioPool[type];
         let audioItem = pool.find(item => !item.playing);
         
-        // ถ้าไม่มีว่าง ใช้ตัวแรก
         if (!audioItem) {
+            // ถ้าไม่มีว่าง ใช้ตัวแรกและ reset
             audioItem = pool[0];
             audioItem.audio.pause();
-            audioItem.audio.currentTime = 0;
         }
         
         audioItem.playing = true;
         audioItem.audio.currentTime = 0;
         
-        const playPromise = audioItem.audio.play();
+        audioItem.audio.play().then(() => {
+            console.log('✓ Playing:', type);
+        }).catch(err => {
+            console.log('✗ Play failed:', type);
+            audioItem.playing = false;
+        });
         
-        if (playPromise !== undefined) {
-            playPromise.then(() => {
-                console.log('✓ Playing:', type);
-            }).catch(err => {
-                console.log('✗ Play failed:', type, err);
-                audioItem.playing = false;
-            });
-        }
-        
-        // Mark as not playing when ended
         audioItem.audio.onended = () => {
             audioItem.playing = false;
         };
     }
     
-    // หยุด background music
     function stopBgMusic() {
         bgMusic.pause();
         bgMusic.currentTime = 0;
@@ -813,16 +817,24 @@
     let sampusPairsRemaining = 0;
     let sampusPairsCompleted = 0;
     
+    // Power-ups
     let lightningCount = 0;
-    let shieldCount = 0;
+    let summonCount = 0; // เปลี่ยนจาก shield เป็น summon
     let doubleCount = 0;
     let magicWandCount = 0;
     
+    // Active effects
     let activeEffects = {
-        shield: 0,
+        summon: 0, // เรียกคำ - เวลาที่เหลือ (วินาที)
+        summonActive: false,
         double: 0,
-        doubleTime: 0
+        doubleTime: 0,
+        slowmo: 0, // Slow motion - เวลาที่เหลือ (วินาที)
+        slowmoActive: false
     };
+    
+    // Speed multiplier สำหรับ slow motion
+    let speedMultiplier = 1;
     
     let karuCollected = 0;
     let lahuCollected = 0;
@@ -870,16 +882,16 @@
     // =============== UI NAVIGATION ===============
     
     function showRegisterForm() {
-        // Unlock audio ตั้งแต่คลิกแรก!
-        unlockAndPreloadAudio();
+        // Unlock audio (ไม่เล่นเสียง)
+        unlockAudio();
         
         document.getElementById('login-screen').classList.add('hidden');
         document.getElementById('register-screen').classList.remove('hidden');
     }
 
     function showGuestForm() {
-        // Unlock audio ตั้งแต่คลิกแรก!
-        unlockAndPreloadAudio();
+        // Unlock audio (ไม่เล่นเสียง)
+        unlockAudio();
         
         document.getElementById('login-screen').classList.add('hidden');
         document.getElementById('guest-screen').classList.remove('hidden');
@@ -909,8 +921,6 @@
     // =============== GAME START ===============
 
     function startGameWithRegister() {
-        console.log("startGameWithRegister called");
-        
         const title = document.getElementById('title').value;
         const firstname = document.getElementById('firstname').value.trim();
         const lastname = document.getElementById('lastname').value.trim();
@@ -932,15 +942,13 @@
             playTime: selectedTime
         };
         
-        // เริ่มเกมหลังจาก audio unlock เสร็จ
-        unlockAndPreloadAudio().then(() => {
+        // รอ unlock แล้วเริ่มเกม
+        unlockAudio().then(() => {
             initializeGame();
         });
     }
 
     function startGameAsGuest() {
-        console.log("startGameAsGuest called");
-        
         const guestName = document.getElementById('guest-name').value.trim() || 'ผู้เล่นไม่ระบุชื่อ';
         
         playerData = {
@@ -953,8 +961,8 @@
             playTime: selectedTime
         };
         
-        // เริ่มเกมหลังจาก audio unlock เสร็จ
-        unlockAndPreloadAudio().then(() => {
+        // รอ unlock แล้วเริ่มเกม
+        unlockAudio().then(() => {
             initializeGame();
         });
     }
@@ -972,15 +980,21 @@
         timeLeft = selectedTime;
         projectiles = []; enemies = []; items = []; particles = [];
         lightningCount = 0;
-        shieldCount = 0;
+        summonCount = 0;
         doubleCount = 0;
         magicWandCount = 0;
-        activeEffects = { shield: 0, double: 0, doubleTime: 0 };
+        activeEffects = { 
+            summon: 0, summonActive: false,
+            double: 0, doubleTime: 0,
+            slowmo: 0, slowmoActive: false
+        };
+        speedMultiplier = 1;
         karuCollected = 0;
         lahuCollected = 0;
         sampusCollected = 0;
         sampusMissionActive = false;
         sampusPairsRemaining = 0;
+        startGameSoundPlayed = false;
         
         setNewMission();
         updatePowerUpButtons();
@@ -991,8 +1005,11 @@
         magicWandTimer = performance.now();
         karuLahuTimer = performance.now();
         
-        // เล่นเสียงเริ่มเกมทันที
-        playSound('startGame');
+        // เล่นเสียงเริ่มเกม (ครั้งเดียว)
+        if (!startGameSoundPlayed) {
+            startGameSoundPlayed = true;
+            playSound('startGame');
+        }
         
         // เล่น background music หลังจาก 4 วินาที
         setTimeout(() => {
@@ -1089,7 +1106,8 @@
             x: Math.random() * (displayWidth - 60) + 30,
             y: -50,
             radius: displayWidth * 0.04,
-            speed: (displayHeight * 0.002) + Math.random() * 2,
+            speed: ((displayHeight * 0.002) + Math.random() * 2) * speedMultiplier,
+            baseSpeed: (displayHeight * 0.002) + Math.random() * 2,
             word: "",
             active: true,
             isCorrect: false,
@@ -1097,8 +1115,11 @@
             color: '#fff'
         };
 
+        // ถ้า summon active - spawn เฉพาะคำถูก
+        const forceCorrect = activeEffects.summonActive;
+
         if (currentMissionType === 'karu') {
-            if (Math.random() < 0.5) {
+            if (forceCorrect || Math.random() < 0.5) {
                 enemy.word = KARU_WORDS[Math.floor(Math.random() * KARU_WORDS.length)];
                 enemy.isCorrect = true;
                 enemy.type = 'karu';
@@ -1110,7 +1131,7 @@
                 enemy.color = '#f0f0f0';
             }
         } else if (currentMissionType === 'lahu') {
-            if (Math.random() < 0.5) {
+            if (forceCorrect || Math.random() < 0.5) {
                 enemy.word = LAHU_WORDS[Math.floor(Math.random() * LAHU_WORDS.length)];
                 enemy.isCorrect = true;
                 enemy.type = 'lahu';
@@ -1122,7 +1143,7 @@
                 enemy.color = '#555';
             }
         } else {
-            if (currentCorrectWords.length > 0 && Math.random() < 0.5) {
+            if ((forceCorrect || Math.random() < 0.5) && currentCorrectWords.length > 0) {
                 enemy.word = currentCorrectWords[Math.floor(Math.random() * currentCorrectWords.length)];
                 enemy.isCorrect = true;
                 enemy.type = 'sampus';
@@ -1159,8 +1180,8 @@
             itemType = 'time';
             realEmoji = '⏰';
         } else if (rand < 0.55) {
-            itemType = 'shield';
-            realEmoji = '🛡️';
+            itemType = 'summon'; // เปลี่ยนจาก shield เป็น summon
+            realEmoji = '📢';
         } else if (rand < 0.7) {
             itemType = 'double';
             realEmoji = '⭐';
@@ -1176,7 +1197,8 @@
             x: Math.random() * (displayWidth - 50) + 25,
             y: -50,
             size: 40,
-            speed: 3,
+            speed: 3 * speedMultiplier,
+            baseSpeed: 3,
             type: itemType,
             emoji: '❓',
             realEmoji: realEmoji,
@@ -1193,7 +1215,8 @@
             x: Math.random() * (displayWidth - 50) + 25,
             y: -50,
             size: 50,
-            speed: 2.5,
+            speed: 2.5 * speedMultiplier,
+            baseSpeed: 2.5,
             type: 'magicwand',
             emoji: '🪄',
             realEmoji: '🪄',
@@ -1229,10 +1252,35 @@
             ctx.drawImage(images.bg, x, y, images.bg.width*scale, images.bg.height*scale);
         }
 
+        // Update active effects
         if (activeEffects.doubleTime > 0) {
             activeEffects.doubleTime -= dt;
             if (activeEffects.doubleTime <= 0) {
                 activeEffects.double = 0;
+                updateEffectDisplay();
+            }
+        }
+
+        // Update summon effect
+        if (activeEffects.summon > 0) {
+            activeEffects.summon -= dt;
+            if (activeEffects.summon <= 0) {
+                activeEffects.summonActive = false;
+                updateEffectDisplay();
+            }
+        }
+
+        // Update slow motion effect
+        if (activeEffects.slowmo > 0) {
+            activeEffects.slowmo -= dt;
+            if (activeEffects.slowmo <= 0) {
+                activeEffects.slowmoActive = false;
+                speedMultiplier = 1;
+                // อัพเดทความเร็วของ enemies และ items กลับปกติ
+                enemies.forEach(e => e.speed = e.baseSpeed);
+                items.forEach(i => i.speed = i.baseSpeed);
+                document.getElementById('slowmo-overlay').classList.add('hidden');
+                document.getElementById('game-container').classList.remove('slowmo-mode');
                 updateEffectDisplay();
             }
         }
@@ -1258,6 +1306,7 @@
             document.getElementById('game-container').style.boxShadow = 'none';
         }
 
+        // สลับครุ-ลหุทุก 30 วินาที
         if (!sampusMissionActive && timestamp - karuLahuTimer > 30000) {
             if (currentMissionType === 'karu') {
                 currentMissionType = 'lahu';
@@ -1271,6 +1320,7 @@
             karuLahuTimer = timestamp;
         }
 
+        // Mission timer
         const timePlayed = selectedTime - timeLeft;
         if (!sampusMissionActive && 
             timestamp - missionTimer > 60000 && 
@@ -1280,17 +1330,21 @@
             missionTimer = timestamp;
         }
 
+        // Item spawn - ทุก 15 วินาที
         if (timestamp - itemSpawnTimer > 15000) {
             spawnItem();
             itemSpawnTimer = timestamp;
         }
 
+        // Magic Wand spawn - ทุก 50 วินาที
         if (timestamp - magicWandTimer > 50000) {
             spawnMagicWand();
             magicWandTimer = timestamp;
         }
 
-        if(timestamp - spawnTimer > 1200) {
+        // Spawn interval - เร็วขึ้นถ้า summon active
+        const spawnInterval = activeEffects.summonActive ? 600 : 1200;
+        if(timestamp - spawnTimer > spawnInterval) {
             spawnEnemy();
             spawnTimer = timestamp;
         }
@@ -1328,7 +1382,7 @@
             ctx.restore();
         }
 
-        // Projectiles
+        // Projectiles (ไม่ช้าลงแม้ slowmo)
         projectiles.forEach(p => {
             p.x += Math.cos(p.angle) * p.speed;
             p.y += Math.sin(p.angle) * p.speed;
@@ -1428,14 +1482,8 @@
                                 particles.push({x: e.x, y: e.y - 30, text: "⚡ ไอเทม!", color: "#FFD700", life: 1});
                             }
                         } else {
-                            if (activeEffects.shield > 0) {
-                                activeEffects.shield--;
-                                pointsText = "โล่ป้องกัน!";
-                                updateEffectDisplay();
-                            } else {
-                                points = -5;
-                                pointsText = "ไม่ใช่ครุ! -5";
-                            }
+                            points = -5;
+                            pointsText = "ไม่ใช่ครุ! -5";
                         }
                     } else if (currentMissionType === 'lahu') {
                         isCorrect = isLahu(e.word);
@@ -1450,14 +1498,8 @@
                                 particles.push({x: e.x, y: e.y - 30, text: "⚡ ไอเทม!", color: "#FFD700", life: 1});
                             }
                         } else {
-                            if (activeEffects.shield > 0) {
-                                activeEffects.shield--;
-                                pointsText = "โล่ป้องกัน!";
-                                updateEffectDisplay();
-                            } else {
-                                points = -5;
-                                pointsText = "ไม่ใช่ลหุ! -5";
-                            }
+                            points = -5;
+                            pointsText = "ไม่ใช่ลหุ! -5";
                         }
                     } else {
                         isCorrect = currentCorrectWords.includes(e.word);
@@ -1467,14 +1509,8 @@
                             pointsText = "สัมผัส! +15";
                             completeSampusPair();
                         } else {
-                            if (activeEffects.shield > 0) {
-                                activeEffects.shield--;
-                                pointsText = "โล่ป้องกัน!";
-                                updateEffectDisplay();
-                            } else {
-                                points = -5;
-                                pointsText = "ผิดสัมผัส! -5";
-                            }
+                            points = -5;
+                            pointsText = "ผิดสัมผัส! -5";
                         }
                     }
                     
@@ -1489,7 +1525,7 @@
                         x: e.x, 
                         y: e.y, 
                         text: pointsText, 
-                        color: isCorrect ? "#FFD700" : (points < 0 ? "#ff4136" : "#00BFFF"), 
+                        color: isCorrect ? "#FFD700" : "#ff4136", 
                         life: 1
                     });
                 }
@@ -1523,9 +1559,9 @@
         } else if (type === 'time') {
             timeLeft += 10;
             particles.push({x, y, text: `${emoji} +10 วิ!`, color: "#87CEEB", life: 1});
-        } else if (type === 'shield') {
-            shieldCount++;
-            particles.push({x, y, text: `${emoji} โล่!`, color: "#2196F3", life: 1});
+        } else if (type === 'summon') {
+            summonCount++;
+            particles.push({x, y, text: `${emoji} เรียกคำ!`, color: "#00BCD4", life: 1});
         } else if (type === 'double') {
             doubleCount++;
             particles.push({x, y, text: `${emoji} คะแนน!`, color: "#9C27B0", life: 1});
@@ -1561,8 +1597,26 @@
                 }
             }
         });
+    }
+
+    function activateSlowMotion() {
+        activeEffects.slowmo = 3; // 3 วินาที
+        activeEffects.slowmoActive = true;
+        speedMultiplier = 0.3; // ช้าลง 70%
         
-        playSound('lightningSpecial');
+        // อัพเดทความเร็วของ enemies และ items
+        enemies.forEach(e => {
+            e.speed = e.baseSpeed * speedMultiplier;
+        });
+        items.forEach(i => {
+            i.speed = i.baseSpeed * speedMultiplier;
+        });
+        
+        // แสดง overlay
+        document.getElementById('slowmo-overlay').classList.remove('hidden');
+        document.getElementById('game-container').classList.add('slowmo-mode');
+        
+        updateEffectDisplay();
     }
 
     function usePowerUp(type) {
@@ -1589,15 +1643,16 @@
                 life: 1
             });
             playSound('lightningSpecial');
-        } else if (type === 'shield' && shieldCount > 0) {
-            shieldCount--;
-            activeEffects.shield = 3;
+        } else if (type === 'summon' && summonCount > 0) {
+            summonCount--;
+            activeEffects.summon = 5; // 5 วินาที
+            activeEffects.summonActive = true;
             updateEffectDisplay();
             particles.push({
                 x: player.x, 
                 y: player.y - 100, 
-                text: "🛡️ โล่ป้องกัน 3 ครั้ง!", 
-                color: "#2196F3", 
+                text: "📢 เรียกคำถูก 5 วิ!", 
+                color: "#00BCD4", 
                 life: 1
             });
         } else if (type === 'double' && doubleCount > 0) {
@@ -1615,10 +1670,11 @@
         } else if (type === 'magicwand' && magicWandCount > 0) {
             magicWandCount--;
             transformAllEnemies();
+            activateSlowMotion();
             particles.push({
                 x: player.x, 
                 y: player.y - 100, 
-                text: "🪄 เปลี่ยนคำทั้งหมด!", 
+                text: "🪄 เวทมนตร์+สโลว์โมชัน!", 
                 color: "#FF1493", 
                 life: 1.5,
                 size: 35
@@ -1631,12 +1687,12 @@
 
     function updatePowerUpButtons() {
         document.getElementById('lightning-count').innerText = lightningCount;
-        document.getElementById('shield-count').innerText = shieldCount;
+        document.getElementById('summon-count').innerText = summonCount;
         document.getElementById('double-count').innerText = doubleCount;
         document.getElementById('magicwand-count').innerText = magicWandCount;
         
         document.getElementById('lightning-btn').classList.toggle('disabled', lightningCount <= 0);
-        document.getElementById('shield-btn').classList.toggle('disabled', shieldCount <= 0);
+        document.getElementById('summon-btn').classList.toggle('disabled', summonCount <= 0);
         document.getElementById('double-btn').classList.toggle('disabled', doubleCount <= 0);
         document.getElementById('magicwand-btn').classList.toggle('disabled', magicWandCount <= 0);
     }
@@ -1645,11 +1701,11 @@
         const container = document.getElementById('active-effects');
         container.innerHTML = '';
         
-        if (activeEffects.shield > 0) {
+        if (activeEffects.summonActive) {
             const badge = document.createElement('div');
             badge.className = 'effect-badge';
-            badge.style.borderColor = '#2196F3';
-            badge.innerText = `🛡️ โล่: ${activeEffects.shield}`;
+            badge.style.borderColor = '#00BCD4';
+            badge.innerText = `📢 เรียกคำ: ${Math.ceil(activeEffects.summon)}วิ`;
             container.appendChild(badge);
         }
         
@@ -1658,6 +1714,14 @@
             badge.className = 'effect-badge';
             badge.style.borderColor = '#9C27B0';
             badge.innerText = `⭐ x2: ${Math.ceil(activeEffects.doubleTime)}วิ`;
+            container.appendChild(badge);
+        }
+        
+        if (activeEffects.slowmoActive) {
+            const badge = document.createElement('div');
+            badge.className = 'effect-badge';
+            badge.style.borderColor = '#FF1493';
+            badge.innerText = `🪄 สโลว์โม: ${Math.ceil(activeEffects.slowmo)}วิ`;
             container.appendChild(badge);
         }
     }
@@ -1690,7 +1754,7 @@
             x: player.x, 
             y: player.y - 50,
             angle: shootAngle,
-            speed: 15,
+            speed: 15, // ไม่ช้าลงแม้ slowmo
             active: true,
             isSpecial: false
         });
@@ -1746,6 +1810,7 @@
             : playerData.firstname;
         
         document.getElementById('game-ui').classList.add('hidden');
+        document.getElementById('slowmo-overlay').classList.add('hidden');
         document.getElementById('end-name').innerText = playerName;
         document.getElementById('end-score').innerText = score;
         document.getElementById('end-karu').innerText = karuCollected;
@@ -1772,8 +1837,6 @@
             sampusCollected: sampusCollected,
             timestamp: new Date().toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' })
         };
-        
-        console.log("Saving to Google Sheet:", data);
         
         fetch('https://script.google.com/macros/s/AKfycbxxguuT7R2awbdbGD8Six3fM-aI3VGkzI83K6OdjW5NwGWy-jX_7kekf0zhYMLVv8xu/exec', {
             method: 'POST',
