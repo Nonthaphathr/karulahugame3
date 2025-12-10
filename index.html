@@ -294,6 +294,63 @@
             font-style: italic;
         }
 
+        /* Visitor Counter */
+        .visitor-counter {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 30px;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 600;
+            z-index: 999;
+            animation: slideInLeft 0.5s ease-out;
+        }
+
+        .visitor-counter .icon {
+            font-size: 1.2rem;
+            animation: pulse 2s infinite;
+        }
+
+        .visitor-counter .count {
+            font-size: 1.1rem;
+            min-width: 60px;
+            text-align: center;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 4px 12px;
+            border-radius: 15px;
+        }
+
+        @keyframes slideInLeft {
+            from {
+                transform: translateX(-100px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .visitor-counter {
+                bottom: 10px;
+                left: 10px;
+                padding: 8px 15px;
+                font-size: 0.9rem;
+            }
+            
+            .visitor-counter .count {
+                min-width: 50px;
+                font-size: 1rem;
+            }
+        }
+
         input {
             width: 100%; 
             padding: 10px; 
@@ -547,13 +604,21 @@
     </div>
 </div>
 
+<!-- Visitor Counter -->
+<div class="visitor-counter">
+    <span class="icon">👁️</span>
+    <span>ผู้เข้าชม:</span>
+    <span class="count" id="visitor-count">...</span>
+</div>
+
 <script>
         /* ==========================================================================
-       SOUND EFFECTS (Web Audio API for iOS compatibility)
+       SOUND EFFECTS (Optimized for iOS/iPhone)
        ========================================================================== */
     let audioContext = null;
     const audioBuffers = {};
     let isAudioReady = false;
+    let audioUnlocked = false;
     
     // สร้าง AudioContext (อาจไม่ support ใน browser เก่า)
     try {
@@ -570,10 +635,41 @@
         bgMusic: 'https://nonthaphathr.github.io/uploadimg/karulahugame3-4.mp3'
     };
     
-    // Background music (ใช้ HTML5 Audio เพราะต้อง loop)
-    const bgMusic = new Audio(AUDIO_FILES.bgMusic);
+    // สร้าง Audio objects สำหรับ iOS (Fallback)
+    const audioElements = {};
+    Object.keys(AUDIO_FILES).forEach(key => {
+        audioElements[key] = new Audio(AUDIO_FILES[key]);
+        audioElements[key].volume = 0.5;
+        audioElements[key].preload = 'auto';
+    });
+    
+    // Background music
+    const bgMusic = audioElements.bgMusic;
     bgMusic.loop = true;
     bgMusic.volume = 0.3;
+    
+    // Unlock audio สำหรับ iOS/iPhone
+    function unlockAudio() {
+        if (audioUnlocked) return;
+        
+        console.log('Unlocking audio for iOS...');
+        
+        // Resume AudioContext
+        if (audioContext && audioContext.state === 'suspended') {
+            audioContext.resume();
+        }
+        
+        // เล่นเสียง silent เพื่อ unlock
+        Object.values(audioElements).forEach(audio => {
+            audio.play().then(() => {
+                audio.pause();
+                audio.currentTime = 0;
+            }).catch(() => {});
+        });
+        
+        audioUnlocked = true;
+        console.log('Audio unlocked!');
+    }
     
     // Preload audio buffers
     async function preloadAudio() {
@@ -604,6 +700,11 @@
     
     function playSound(type) {
         try {
+            // Unlock audio ถ้ายังไม่ได้ unlock
+            if (!audioUnlocked) {
+                unlockAudio();
+            }
+            
             // Resume AudioContext (สำหรับ iOS)
             if (audioContext && audioContext.state === 'suspended') {
                 audioContext.resume();
@@ -611,6 +712,14 @@
             
             if (type === 'bgMusic') {
                 bgMusic.play().catch(() => {});
+                return;
+            }
+            
+            // ใช้ HTML5 Audio สำหรับ iOS (เสถียรกว่า)
+            if (audioElements[type]) {
+                const audio = audioElements[type];
+                audio.currentTime = 0;
+                audio.play().catch(() => {});
                 return;
             }
             
@@ -818,6 +927,9 @@
     function startGameWithRegister() {
         console.log("startGameWithRegister called");
         
+        // Unlock audio ทันที (สำหรับ iOS)
+        unlockAudio();
+        
         try {
             const title = document.getElementById('title').value;
             const firstname = document.getElementById('firstname').value.trim();
@@ -849,6 +961,11 @@
     }
 
     function startGameAsGuest() {
+        console.log("startGameAsGuest called");
+        
+        // Unlock audio ทันที (สำหรับ iOS)
+        unlockAudio();
+        
         const guestName = document.getElementById('guest-name').value.trim() || 'ผู้เล่นไม่ระบุชื่อ';
         
         playerData = {
@@ -1754,6 +1871,37 @@
             isAudioReady = false;
         });
     });
+
+    // Visitor Counter - CountAPI
+    (function() {
+        const namespace = 'indravichien-game';
+        const key = 'visits';
+        const counterElement = document.getElementById('visitor-count');
+        
+        // Hit counter API
+        fetch(`https://api.counterapi.dev/v1/${namespace}/${key}/up`, {
+            method: 'GET'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data && data.count) {
+                // แสดงตัวเลขแบบสวยงาม (มี comma)
+                const formattedCount = data.count.toLocaleString('th-TH');
+                counterElement.textContent = formattedCount;
+                
+                // เอฟเฟค fade in
+                counterElement.style.opacity = '0';
+                setTimeout(() => {
+                    counterElement.style.transition = 'opacity 0.5s ease';
+                    counterElement.style.opacity = '1';
+                }, 100);
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching visitor count:', error);
+            counterElement.textContent = '---';
+        });
+    })();
 
 </script>
 </body>
