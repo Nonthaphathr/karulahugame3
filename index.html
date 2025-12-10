@@ -576,20 +576,8 @@
 
 <script>
         /* ==========================================================================
-       SOUND EFFECTS (Optimized for iOS/iPhone and PC)
+       SOUND EFFECTS (Universal - Works on PC and iPhone)
        ========================================================================== */
-    let audioContext = null;
-    const audioBuffers = {};
-    let isAudioReady = false;
-    let audioUnlocked = false;
-    
-    // สร้าง AudioContext (อาจไม่ support ใน browser เก่า)
-    try {
-        audioContext = new (window.AudioContext || window.webkitAudioContext)();
-    } catch (e) {
-        console.warn('Web Audio API not supported, using fallback');
-        audioContext = null;
-    }
     
     const AUDIO_FILES = {
         startGame: 'https://nonthaphathr.github.io/uploadimg/karulahugame3-1.mp3',
@@ -598,133 +586,139 @@
         bgMusic: 'https://nonthaphathr.github.io/uploadimg/karulahugame3-4.mp3'
     };
     
-    // สร้าง Audio objects สำหรับทุกแพลตฟอร์ม
-    const audioElements = {};
-    let audioElementsReady = false;
+    // Audio Pool System - ใช้ multiple instances เพื่อเล่นซ้อนกันได้
+    const audioPool = {};
+    let audioInitialized = false;
+    let firstInteraction = false;
     
-    function initAudioElements() {
+    // สร้าง Audio Pool
+    function initAudioSystem() {
+        console.log('🎵 Initializing audio system...');
+        
         Object.keys(AUDIO_FILES).forEach(key => {
-            audioElements[key] = new Audio();
-            audioElements[key].src = AUDIO_FILES[key];
-            audioElements[key].volume = 0.5;
-            audioElements[key].preload = 'auto';
-            audioElements[key].load(); // Force load
+            audioPool[key] = [];
+            
+            // สร้าง 3 instances สำหรับแต่ละเสียง (เล่นซ้อนกันได้)
+            for (let i = 0; i < 3; i++) {
+                const audio = new Audio(AUDIO_FILES[key]);
+                audio.preload = 'auto';
+                audio.volume = 0.5;
+                
+                // Event listeners
+                audio.addEventListener('canplaythrough', () => {
+                    console.log(`✓ Audio ready: ${key} [${i}]`);
+                }, { once: true });
+                
+                audio.addEventListener('error', (e) => {
+                    console.error(`✗ Audio error: ${key} [${i}]`, e);
+                });
+                
+                audioPool[key].push(audio);
+            }
         });
-        audioElementsReady = true;
-        console.log('Audio elements initialized');
+        
+        // Background music (เฉพาะตัวเดียว)
+        if (audioPool.bgMusic && audioPool.bgMusic[0]) {
+            audioPool.bgMusic[0].loop = true;
+            audioPool.bgMusic[0].volume = 0.3;
+        }
+        
+        audioInitialized = true;
+        console.log('✓ Audio system initialized');
     }
     
     // เรียกทันที
-    initAudioElements();
+    initAudioSystem();
     
-    // Background music
-    const bgMusic = audioElements.bgMusic;
-    bgMusic.loop = true;
-    bgMusic.volume = 0.3;
-    
-    // Unlock audio สำหรับ iOS/iPhone และ PC
-    function unlockAudio() {
-        if (audioUnlocked) return;
+    // Unlock Audio - เรียกตอนมี user interaction ครั้งแรก
+    function unlockAudioSystem() {
+        if (firstInteraction) return;
         
-        console.log('Unlocking audio...');
+        console.log('🔓 Unlocking audio system...');
+        firstInteraction = true;
         
-        // Resume AudioContext
-        if (audioContext && audioContext.state === 'suspended') {
-            audioContext.resume();
-        }
-        
-        // เล่นเสียง silent เพื่อ unlock (สำคัญสำหรับ PC + Mobile)
-        Object.values(audioElements).forEach(audio => {
-            const playPromise = audio.play();
-            if (playPromise !== undefined) {
-                playPromise.then(() => {
-                    audio.pause();
-                    audio.currentTime = 0;
-                }).catch(err => {
-                    console.log('Silent play failed:', err);
-                });
-            }
+        // เล่นและหยุดทุกเสียงเพื่อ unlock browser
+        Object.values(audioPool).forEach(instances => {
+            instances.forEach(audio => {
+                audio.muted = true;
+                const playPromise = audio.play();
+                if (playPromise) {
+                    playPromise.then(() => {
+                        audio.pause();
+                        audio.currentTime = 0;
+                        audio.muted = false;
+                    }).catch(() => {});
+                }
+            });
         });
         
-        audioUnlocked = true;
-        console.log('Audio unlocked!');
+        console.log('✓ Audio unlocked');
     }
     
-    // Preload audio buffers (Web Audio API)
-    async function preloadAudio() {
-        if (!audioContext) {
-            console.warn('AudioContext not available');
+    // Play Sound Function - ใช้ตัวนี้เพื่อเล่นเสียง
+    function playSound(type) {
+        console.log(`🔊 playSound: ${type}`);
+        
+        // Unlock ถ้ายังไม่ได้ unlock
+        if (!firstInteraction) {
+            unlockAudioSystem();
+        }
+        
+        if (!audioInitialized || !audioPool[type]) {
+            console.warn('Audio not initialized:', type);
             return;
         }
         
-        const loadPromises = [];
-        for (const [key, url] of Object.entries(AUDIO_FILES)) {
-            if (key === 'bgMusic') continue;
-            
-            const promise = fetch(url)
-                .then(response => response.arrayBuffer())
-                .then(arrayBuffer => audioContext.decodeAudioData(arrayBuffer))
-                .then(audioBuffer => {
-                    audioBuffers[key] = audioBuffer;
-                })
-                .catch(err => console.error('Error loading ' + key + ':', err));
-            
-            loadPromises.push(promise);
-        }
-        
-        await Promise.all(loadPromises);
-        isAudioReady = true;
-        console.log('Audio preloaded successfully');
-    }
-    
-    function playSound(type) {
         try {
-            console.log('playSound called:', type);
-            
-            // Unlock audio ถ้ายังไม่ได้ unlock
-            if (!audioUnlocked) {
-                unlockAudio();
-            }
-            
-            // Resume AudioContext (สำหรับ iOS)
-            if (audioContext && audioContext.state === 'suspended') {
-                audioContext.resume();
-            }
-            
+            // Background music - ใช้ตัวแรก
             if (type === 'bgMusic') {
-                bgMusic.play().catch(err => console.log('BG music play failed:', err));
+                const bgm = audioPool.bgMusic[0];
+                bgm.volume = 0.3;
+                bgm.play()
+                    .then(() => console.log('✓ BGM playing'))
+                    .catch(err => console.log('BGM play failed:', err.message));
                 return;
             }
             
-            // ใช้ HTML5 Audio เป็นหลัก (ทำงานได้ทั้ง PC และ Mobile)
-            if (audioElements[type]) {
-                const audio = audioElements[type];
-                
-                // Reset และเล่นใหม่
-                audio.currentTime = 0;
-                audio.volume = (type === 'startGame' || type === 'lightningSpecial') ? 0.6 : 0.5;
-                
-                const playPromise = audio.play();
-                
-                if (playPromise !== undefined) {
-                    playPromise
-                        .then(() => {
-                            console.log('✓ Sound played successfully:', type);
-                        })
-                        .catch(err => {
-                            console.error('✗ Audio play failed:', type, err);
-                            // Fallback: ลองอีกครั้งหลัง unlock
-                            setTimeout(() => {
-                                audio.play().catch(() => {});
-                            }, 100);
-                        });
-                }
-                return;
+            // เสียงอื่นๆ - หา instance ที่ไม่ได้เล่นอยู่
+            const instances = audioPool[type];
+            let audio = instances.find(a => a.paused || a.ended);
+            
+            // ถ้าทุกตัวกำลังเล่น ใช้ตัวแรก
+            if (!audio) audio = instances[0];
+            
+            // ตั้งค่าและเล่น
+            audio.currentTime = 0;
+            
+            // ปรับ volume ตามประเภทเสียง
+            if (type === 'startGame' || type === 'lightningSpecial') {
+                audio.volume = 0.6;
+            } else if (type === 'shoot') {
+                audio.volume = 0.4;
+            } else {
+                audio.volume = 0.5;
             }
             
-            console.warn('No audio source for:', type);
-        } catch (e) {
-            console.error('Error playing sound:', e);
+            // เล่นเสียง
+            const playPromise = audio.play();
+            
+            if (playPromise !== undefined) {
+                playPromise
+                    .then(() => {
+                        console.log(`✓ Playing: ${type}`);
+                    })
+                    .catch(err => {
+                        console.error(`✗ Play failed: ${type} - ${err.message}`);
+                        
+                        // Retry หลัง 50ms
+                        setTimeout(() => {
+                            audio.play().catch(() => console.log('Retry failed'));
+                        }, 50);
+                    });
+            }
+            
+        } catch (error) {
+            console.error('Error in playSound:', error);
         }
     }
 
@@ -893,8 +887,8 @@
     function startGameWithRegister() {
         console.log("startGameWithRegister called");
         
-        // Unlock audio ทันที (สำหรับ iOS)
-        unlockAudio();
+        // Unlock audio ทันที (สำหรับทุก platform)
+        unlockAudioSystem();
         
         try {
             const title = document.getElementById('title').value;
@@ -929,8 +923,8 @@
     function startGameAsGuest() {
         console.log("startGameAsGuest called");
         
-        // Unlock audio ทันที (สำหรับ iOS)
-        unlockAudio();
+        // Unlock audio ทันที (สำหรับทุก platform)
+        unlockAudioSystem();
         
         const guestName = document.getElementById('guest-name').value.trim() || 'ผู้เล่นไม่ระบุชื่อ';
         
@@ -1831,11 +1825,6 @@
 
     loadImages(() => {
         console.log("🎮 อินทรวิเชียรเกม : ฟาดสายฟ้าครุ-ลหุ พร้อมแล้ว!");
-        // Preload เสียงแบบ async (ไม่ block)
-        preloadAudio().catch(err => {
-            console.error('Audio preload failed:', err);
-            isAudioReady = false;
-        });
     });
 
     // Visitor Counter - CountAPI
