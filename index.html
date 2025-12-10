@@ -436,6 +436,10 @@
                 <button class="btn" onclick="showRegisterForm()">🎓 ลงทะเบียนและเล่น</button>
                 <button class="btn" style="background: linear-gradient(45deg, #9E9E9E, #757575);" onclick="showGuestForm()">👤 เล่นแบบไม่ลงทะเบียน</button>
             </div>
+            
+            <div class="visitor-text">
+                ผู้เข้าชม: <span class="count" id="visitor-count-login">...</span> ครั้ง
+            </div>
         </div>
     </div>
 
@@ -497,6 +501,10 @@
             <button class="btn" style="background: linear-gradient(45deg, #2196F3, #1976D2); margin-bottom: 10px;" onclick="showItemGuide()">📖 คู่มือไอเทม</button>
             <button class="btn" onclick="startGameAsGuest()">เริ่มการแข่งขัน!</button>
             <button class="btn" style="background: linear-gradient(45deg, #9E9E9E, #757575); margin-top: 10px;" onclick="backToLogin()">← กลับ</button>
+            
+            <div class="visitor-text">
+                ผู้เข้าชม: <span class="count" id="visitor-count-guest">...</span> ครั้ง
+            </div>
         </div>
     </div>
 
@@ -666,52 +674,38 @@
             }
             
             if (type === 'bgMusic') {
-                bgMusic.play().catch(() => {});
+                bgMusic.play().catch(err => console.log('BG music play failed:', err));
                 return;
             }
             
-            // ใช้ HTML5 Audio สำหรับ iOS (เสถียรกว่า)
+            // ใช้ HTML5 Audio เป็นหลัก (เสถียรที่สุด)
             if (audioElements[type]) {
                 const audio = audioElements[type];
                 audio.currentTime = 0;
-                audio.play().catch(() => {});
+                audio.volume = 0.5;
+                audio.play().catch(err => {
+                    console.log('Audio play failed:', type, err);
+                });
+                console.log('Playing sound:', type);
                 return;
             }
             
-            // ใช้ Web Audio API สำหรับเสียงสั้นๆ (ถ้ามี)
+            // Fallback: ใช้ Web Audio API (ถ้ามี buffer)
             if (audioContext && isAudioReady && audioBuffers[type]) {
                 const source = audioContext.createBufferSource();
                 source.buffer = audioBuffers[type];
                 
                 const gainNode = audioContext.createGain();
-                if (type === 'shoot') {
-                    gainNode.gain.value = 0.4;
-                } else if (type === 'startGame') {
-                    gainNode.gain.value = 0.5;
-                } else if (type === 'lightningSpecial') {
-                    gainNode.gain.value = 0.5;
-                } else {
-                    gainNode.gain.value = 0.3;
-                }
+                gainNode.gain.value = 0.5;
                 
                 source.connect(gainNode);
                 gainNode.connect(audioContext.destination);
                 source.start(0);
-            } else {
-                // Fallback สำหรับเสียง beep
-                if (type === 'correct' || type === 'wrong' || type === 'item') {
-                    const audio = new Audio();
-                    if (type === 'correct') {
-                        audio.src = 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuBzvLZiTYIG2m98OScTgwOUKzn77djGwU7k9n0zHksBSN0yPDdkUELEl+16+qnVRMKSKDh8r9vIgUs';
-                    } else if (type === 'wrong') {
-                        audio.src = 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACAgoaGZ1lZZI2lnIJaLCZXk8POpVoQAy6M0ejAZyADJXnB5dN+LwYad7fr3pE9CQ9apu3srE0PBz+W3/C9aB0EJ4HM8NiEMwYZZ7ns4JhKCgtQqOLusmAbBDiQ1fDKdykEI3XG79yNPQkSXbPp6aVSEQhEnt/wvWoeBS6AzfDYiDUGG2q98OKbTQsN';
-                    } else if (type === 'item') {
-                        audio.src = 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACDh4yJb2Rid52ysp1vQDlnq9vkr2YdBkGf4PTHdjAHLoPS+N+SRQwdcL7x6KJYEw1Wq+jzwm4oBTKJ1PTSgTgJHnHB8+qlWRQOXbTr9MZ2MAc0jNn13pBBCxVhtuvvsmkcBT2U2/TOejEGJnfJ8d+TPw';
-                    }
-                    audio.volume = 0.3;
-                    audio.play().catch(() => {});
-                }
+                console.log('Playing sound via Web Audio:', type);
+                return;
             }
+            
+            console.warn('No audio source for:', type);
         } catch (e) {
             console.error('Error playing sound:', e);
         }
@@ -1831,7 +1825,6 @@
     (function() {
         const namespace = 'indravichien-game';
         const key = 'visits';
-        const counterElement = document.getElementById('visitor-count');
         
         // Hit counter API
         fetch(`https://api.counterapi.dev/v1/${namespace}/${key}/up`, {
@@ -1842,19 +1835,37 @@
             if (data && data.count) {
                 // แสดงตัวเลขแบบสวยงาม (มี comma)
                 const formattedCount = data.count.toLocaleString('th-TH');
-                counterElement.textContent = formattedCount;
                 
-                // เอฟเฟค fade in
-                counterElement.style.opacity = '0';
-                setTimeout(() => {
-                    counterElement.style.transition = 'opacity 0.5s ease';
-                    counterElement.style.opacity = '1';
-                }, 100);
+                // Update ทั้ง 3 หน้า
+                const counters = [
+                    document.getElementById('visitor-count-login'),
+                    document.getElementById('visitor-count'),
+                    document.getElementById('visitor-count-guest')
+                ];
+                
+                counters.forEach(counter => {
+                    if (counter) {
+                        counter.textContent = formattedCount;
+                        
+                        // เอฟเฟค fade in
+                        counter.style.opacity = '0';
+                        setTimeout(() => {
+                            counter.style.transition = 'opacity 0.5s ease';
+                            counter.style.opacity = '1';
+                        }, 100);
+                    }
+                });
+                
+                console.log('Visitor count updated:', formattedCount);
             }
         })
         .catch(error => {
             console.error('Error fetching visitor count:', error);
-            counterElement.textContent = '---';
+            // แสดง --- ถ้า error
+            ['visitor-count-login', 'visitor-count', 'visitor-count-guest'].forEach(id => {
+                const elem = document.getElementById(id);
+                if (elem) elem.textContent = '---';
+            });
         });
     })();
 
