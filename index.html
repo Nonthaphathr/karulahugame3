@@ -576,7 +576,7 @@
 
 <script>
         /* ==========================================================================
-       SOUND EFFECTS (Optimized for iOS/iPhone)
+       SOUND EFFECTS (Optimized for iOS/iPhone and PC)
        ========================================================================== */
     let audioContext = null;
     const audioBuffers = {};
@@ -598,43 +598,59 @@
         bgMusic: 'https://nonthaphathr.github.io/uploadimg/karulahugame3-4.mp3'
     };
     
-    // สร้าง Audio objects สำหรับ iOS (Fallback)
+    // สร้าง Audio objects สำหรับทุกแพลตฟอร์ม
     const audioElements = {};
-    Object.keys(AUDIO_FILES).forEach(key => {
-        audioElements[key] = new Audio(AUDIO_FILES[key]);
-        audioElements[key].volume = 0.5;
-        audioElements[key].preload = 'auto';
-    });
+    let audioElementsReady = false;
+    
+    function initAudioElements() {
+        Object.keys(AUDIO_FILES).forEach(key => {
+            audioElements[key] = new Audio();
+            audioElements[key].src = AUDIO_FILES[key];
+            audioElements[key].volume = 0.5;
+            audioElements[key].preload = 'auto';
+            audioElements[key].load(); // Force load
+        });
+        audioElementsReady = true;
+        console.log('Audio elements initialized');
+    }
+    
+    // เรียกทันที
+    initAudioElements();
     
     // Background music
     const bgMusic = audioElements.bgMusic;
     bgMusic.loop = true;
     bgMusic.volume = 0.3;
     
-    // Unlock audio สำหรับ iOS/iPhone
+    // Unlock audio สำหรับ iOS/iPhone และ PC
     function unlockAudio() {
         if (audioUnlocked) return;
         
-        console.log('Unlocking audio for iOS...');
+        console.log('Unlocking audio...');
         
         // Resume AudioContext
         if (audioContext && audioContext.state === 'suspended') {
             audioContext.resume();
         }
         
-        // เล่นเสียง silent เพื่อ unlock
+        // เล่นเสียง silent เพื่อ unlock (สำคัญสำหรับ PC + Mobile)
         Object.values(audioElements).forEach(audio => {
-            audio.play().then(() => {
-                audio.pause();
-                audio.currentTime = 0;
-            }).catch(() => {});
+            const playPromise = audio.play();
+            if (playPromise !== undefined) {
+                playPromise.then(() => {
+                    audio.pause();
+                    audio.currentTime = 0;
+                }).catch(err => {
+                    console.log('Silent play failed:', err);
+                });
+            }
         });
         
         audioUnlocked = true;
         console.log('Audio unlocked!');
     }
     
-    // Preload audio buffers
+    // Preload audio buffers (Web Audio API)
     async function preloadAudio() {
         if (!audioContext) {
             console.warn('AudioContext not available');
@@ -663,6 +679,8 @@
     
     function playSound(type) {
         try {
+            console.log('playSound called:', type);
+            
             // Unlock audio ถ้ายังไม่ได้ unlock
             if (!audioUnlocked) {
                 unlockAudio();
@@ -678,30 +696,29 @@
                 return;
             }
             
-            // ใช้ HTML5 Audio เป็นหลัก (เสถียรที่สุด)
+            // ใช้ HTML5 Audio เป็นหลัก (ทำงานได้ทั้ง PC และ Mobile)
             if (audioElements[type]) {
                 const audio = audioElements[type];
+                
+                // Reset และเล่นใหม่
                 audio.currentTime = 0;
-                audio.volume = 0.5;
-                audio.play().catch(err => {
-                    console.log('Audio play failed:', type, err);
-                });
-                console.log('Playing sound:', type);
-                return;
-            }
-            
-            // Fallback: ใช้ Web Audio API (ถ้ามี buffer)
-            if (audioContext && isAudioReady && audioBuffers[type]) {
-                const source = audioContext.createBufferSource();
-                source.buffer = audioBuffers[type];
+                audio.volume = (type === 'startGame' || type === 'lightningSpecial') ? 0.6 : 0.5;
                 
-                const gainNode = audioContext.createGain();
-                gainNode.gain.value = 0.5;
+                const playPromise = audio.play();
                 
-                source.connect(gainNode);
-                gainNode.connect(audioContext.destination);
-                source.start(0);
-                console.log('Playing sound via Web Audio:', type);
+                if (playPromise !== undefined) {
+                    playPromise
+                        .then(() => {
+                            console.log('✓ Sound played successfully:', type);
+                        })
+                        .catch(err => {
+                            console.error('✗ Audio play failed:', type, err);
+                            // Fallback: ลองอีกครั้งหลัง unlock
+                            setTimeout(() => {
+                                audio.play().catch(() => {});
+                            }, 100);
+                        });
+                }
                 return;
             }
             
