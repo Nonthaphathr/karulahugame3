@@ -412,7 +412,39 @@
             <h1>อินทรวิเชียรเกม</h1>
             <h2 style="font-size: 1.5rem; margin-top: 5px;">ฟาดสายฟ้าครุ-ลหุ</h2>
             <p class="developer">พัฒนาโดย ครูนนทพัทธ์ หิรัญเรือง</p>
-            <input type="text" id="p-name" placeholder="ชื่อ-นามสกุล" style="margin-top: 20px;">
+            
+            <div style="margin: 20px 0;">
+                <button class="btn" onclick="showRegisterForm()">🎓 ลงทะเบียนและเล่น</button>
+                <button class="btn" style="background: linear-gradient(45deg, #9E9E9E, #757575);" onclick="showGuestForm()">👤 เล่นแบบไม่ลงทะเบียน</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="register-screen" class="screen hidden">
+        <div class="screen-content">
+            <h1 style="color: var(--deep-blue);">ลงทะเบียน</h1>
+            
+            <select id="title" style="width: 100%; padding: 10px; margin: 10px 0; border: 2px solid #ddd; border-radius: 5px; font-size: 1rem;">
+                <option value="">-- เลือกคำนำหน้า --</option>
+                <option value="เด็กชาย">เด็กชาย</option>
+                <option value="เด็กหญิง">เด็กหญิง</option>
+                <option value="นาย">นาย</option>
+                <option value="นางสาว">นางสาว</option>
+            </select>
+            
+            <input type="text" id="firstname" placeholder="ชื่อ" style="width: 100%; padding: 10px; margin: 10px 0; border: 2px solid #ddd; border-radius: 5px; font-size: 1rem;">
+            <input type="text" id="lastname" placeholder="นามสกุล" style="width: 100%; padding: 10px; margin: 10px 0; border: 2px solid #ddd; border-radius: 5px; font-size: 1rem;">
+            <input type="number" id="student-number" placeholder="เลขที่" min="1" max="50" style="width: 100%; padding: 10px; margin: 10px 0; border: 2px solid #ddd; border-radius: 5px; font-size: 1rem;">
+            
+            <select id="grade" style="width: 100%; padding: 10px; margin: 10px 0; border: 2px solid #ddd; border-radius: 5px; font-size: 1rem;">
+                <option value="">-- เลือกระดับชั้น --</option>
+                <option value="ม.1">ม.1</option>
+                <option value="ม.2">ม.2</option>
+                <option value="ม.3">ม.3</option>
+                <option value="ม.4">ม.4</option>
+                <option value="ม.5">ม.5</option>
+                <option value="ม.6">ม.6</option>
+            </select>
             
             <h2>เลือกเวลาการเล่น</h2>
             <div class="time-selector">
@@ -422,7 +454,26 @@
             </div>
             
             <button class="btn" style="background: linear-gradient(45deg, #2196F3, #1976D2); margin-bottom: 10px;" onclick="showItemGuide()">📖 คู่มือไอเทม</button>
-            <button class="btn" onclick="startGame()">เริ่มการแข่งขัน!</button>
+            <button class="btn" onclick="startGameWithRegister()">เริ่มการแข่งขัน!</button>
+            <button class="btn" style="background: linear-gradient(45deg, #9E9E9E, #757575); margin-top: 10px;" onclick="backToLogin()">← กลับ</button>
+        </div>
+    </div>
+
+    <div id="guest-screen" class="screen hidden">
+        <div class="screen-content">
+            <h1 style="color: var(--deep-blue);">เล่นแบบไม่ลงทะเบียน</h1>
+            <input type="text" id="guest-name" placeholder="ชื่อเล่น (ไม่บังคับ)" style="margin-top: 20px;">
+            
+            <h2>เลือกเวลาการเล่น</h2>
+            <div class="time-selector">
+                <div class="time-btn selected" onclick="selectTime(180, this)">3 นาที</div>
+                <div class="time-btn" onclick="selectTime(300, this)">5 นาที</div>
+                <div class="time-btn" onclick="selectTime(600, this)">10 นาที</div>
+            </div>
+            
+            <button class="btn" style="background: linear-gradient(45deg, #2196F3, #1976D2); margin-bottom: 10px;" onclick="showItemGuide()">📖 คู่มือไอเทม</button>
+            <button class="btn" onclick="startGameAsGuest()">เริ่มการแข่งขัน!</button>
+            <button class="btn" style="background: linear-gradient(45deg, #9E9E9E, #757575); margin-top: 10px;" onclick="backToLogin()">← กลับ</button>
         </div>
     </div>
 
@@ -444,6 +495,13 @@
             <h1 style="color: var(--deep-blue); margin-bottom: 20px;">📖 คู่มือไอเทม</h1>
             
             <div style="text-align: left; margin: 20px 0;">
+                <h3 style="color: #FF1493; margin: 15px 0 10px;">🌟 ไอเทมพิเศษ</h3>
+                <div style="padding: 10px; background: #FFE4F7; border-radius: 10px; margin: 8px 0; border: 2px solid #FF1493;">
+                    <strong>🪄 ไม้กายสิทธิ์</strong><br>
+                    เปลี่ยนคำทั้งหมดในจอให้ตรงกับภารกิจ!<br>
+                    <small>(ปรากฏทุก 1 นาที และไม่ซ่อนเป็น ❓)</small>
+                </div>
+                
                 <h3 style="color: #4CAF50; margin: 15px 0 10px;">✅ ไอเทมบวก (ช่วยเหลือ)</h3>
                 <div style="padding: 10px; background: #f0f0f0; border-radius: 10px; margin: 8px 0;">
                     <strong>⚡ สายฟ้ากระจาย</strong><br>
@@ -475,7 +533,8 @@
                 <div style="background: #fff3cd; padding: 15px; border-radius: 10px; margin: 20px 0; border: 2px solid #ffc107;">
                     <strong>💡 เคล็ดลับ:</strong><br>
                     ไอเทมทั้งหมดจะปรากฏเป็น <strong>❓</strong> ทำให้ไม่รู้ว่าจะได้อะไร!<br>
-                    ยิงเพื่อเปิดดูว่าจะได้ไอเทมดีหรือไอเทมเสีย 🎲
+                    ยิงเพื่อเปิดดูว่าจะได้ไอเทมดีหรือไอเทมเสีย 🎲<br>
+                    <strong>ยกเว้น 🪄 ไม้กายสิทธิ์</strong> ที่จะแสดงให้เห็นชัดเจน!
                 </div>
             </div>
             
@@ -586,6 +645,17 @@
     let currentTargetWord = "";
     let currentCorrectWords = [];
     
+    // ข้อมูลผู้เล่น
+    let playerData = {
+        isRegistered: false,
+        title: '',
+        firstname: '',
+        lastname: '',
+        studentNumber: '',
+        grade: '',
+        playTime: 180
+    };
+    
     // Sampus Mission
     let sampusMissionActive = false;
     let sampusPairsRemaining = 0;
@@ -618,6 +688,7 @@
     let spawnTimer = 0;
     let missionTimer = 0;
     let itemSpawnTimer = 0;
+    let magicWandTimer = 0; // สำหรับไอเทมพิเศษ
 
     function resizeCanvas() {
         const dpr = window.devicePixelRatio || 1;
@@ -645,6 +716,23 @@
         });
     }
 
+    function showRegisterForm() {
+        document.getElementById('login-screen').classList.add('hidden');
+        document.getElementById('register-screen').classList.remove('hidden');
+    }
+
+    function showGuestForm() {
+        document.getElementById('login-screen').classList.add('hidden');
+        document.getElementById('guest-screen').classList.remove('hidden');
+    }
+
+    function backToLogin() {
+        document.getElementById('register-screen').classList.add('hidden');
+        document.getElementById('guest-screen').classList.add('hidden');
+        document.getElementById('item-guide-screen').classList.add('hidden');
+        document.getElementById('login-screen').classList.remove('hidden');
+    }
+
     function selectTime(seconds, element) {
         selectedTime = seconds;
         document.querySelectorAll('.time-btn').forEach(btn => btn.classList.remove('selected'));
@@ -659,18 +747,53 @@
         document.getElementById('item-guide-screen').classList.add('hidden');
     }
 
-    function startGame() {
-        console.log("startGame called");
-        const name = document.getElementById('p-name').value;
-        console.log("Player name:", name);
-        if(!name) { 
-            alert("กรุณากรอกชื่อ"); 
-            return; 
+    function startGameWithRegister() {
+        const title = document.getElementById('title').value;
+        const firstname = document.getElementById('firstname').value.trim();
+        const lastname = document.getElementById('lastname').value.trim();
+        const studentNumber = document.getElementById('student-number').value;
+        const grade = document.getElementById('grade').value;
+        
+        if (!title || !firstname || !lastname || !studentNumber || !grade) {
+            alert('กรุณากรอกข้อมูลให้ครบถ้วน');
+            return;
         }
         
-        console.log("Starting game with time:", selectedTime);
+        playerData = {
+            isRegistered: true,
+            title: title,
+            firstname: firstname,
+            lastname: lastname,
+            studentNumber: parseInt(studentNumber),
+            grade: grade,
+            playTime: selectedTime
+        };
         
+        console.log("Starting game with registration:", playerData);
+        initializeGame();
+    }
+
+    function startGameAsGuest() {
+        const guestName = document.getElementById('guest-name').value.trim() || 'ผู้เล่นไม่ระบุชื่อ';
+        
+        playerData = {
+            isRegistered: false,
+            title: '',
+            firstname: guestName,
+            lastname: '',
+            studentNumber: 0,
+            grade: '',
+            playTime: selectedTime
+        };
+        
+        console.log("Starting game as guest:", playerData);
+        initializeGame();
+    }
+
+    function initializeGame() {
         document.getElementById('login-screen').classList.add('hidden');
+        document.getElementById('register-screen').classList.add('hidden');
+        document.getElementById('guest-screen').classList.add('hidden');
         document.getElementById('game-over-screen').classList.add('hidden');
         document.getElementById('game-ui').classList.remove('hidden');
         
@@ -693,13 +816,14 @@
         lastTime = performance.now();
         missionTimer = performance.now();
         itemSpawnTimer = performance.now();
+        magicWandTimer = performance.now(); // เริ่มนับเวลาไอเทม magic wand
         requestAnimationFrame(gameLoop);
         
-        // เล่นเสียงเริ่มเกม (ครั้งเดียว) แล้วตามด้วยเพลงพื้นหลัง
+        // เล่นเสียงเริ่มเกม (ครั้งเดียว) แล้วรอ 4 วิก่อนเล่นเพลงพื้นหลัง
         playSound('startGame');
         setTimeout(() => {
             playSound('bgMusic');
-        }, 500);
+        }, 4000);
         
         console.log("Game started successfully");
     }
@@ -889,7 +1013,34 @@
             type: itemType,
             emoji: '❓', // แสดงเป็น ? ทั้งหมด
             realEmoji: realEmoji, // เก็บ emoji จริงไว้
-            active: true
+            active: true,
+            isMagicWand: false
+        });
+    }
+
+    function spawnMagicWand() {
+        const dpr = window.devicePixelRatio || 1;
+        const displayWidth = canvas.width / dpr;
+        
+        items.push({
+            x: Math.random() * (displayWidth - 50) + 25,
+            y: -50,
+            size: 50,
+            speed: 2.5,
+            type: 'magicwand',
+            emoji: '🪄', // ไม้กายสิทธิ์ - ไม่ใช่ "?"
+            realEmoji: '🪄',
+            active: true,
+            isMagicWand: true
+        });
+        
+        particles.push({
+            x: displayWidth / 2,
+            y: 100,
+            text: '🌟 ไอเทมพิเศษปรากฏ! 🌟',
+            color: '#FF1493',
+            life: 2,
+            size: 35
         });
     }
 
@@ -923,12 +1074,24 @@
         timeLeft -= dt;
         if(timeLeft <= 0) {
             timeLeft = 0;
-            endGame();
+            fadeToGameOver();
+            return;
         }
         const minutes = Math.floor(timeLeft / 60);
         const seconds = Math.ceil(timeLeft % 60);
         document.getElementById('time-val').innerText = `${minutes}:${seconds.toString().padStart(2, '0')}`;
-        if(timeLeft <= 10) document.getElementById('time-val').style.color = 'red';
+        
+        // กระพริบสีแดงก่อนหมดเวลา 5 วินาที
+        if(timeLeft <= 5) {
+            document.getElementById('time-val').style.color = 'red';
+            const flashIntensity = Math.sin(timestamp / 200) * 0.5 + 0.5;
+            document.getElementById('game-container').style.boxShadow = `inset 0 0 ${100 * flashIntensity}px rgba(255, 0, 0, ${0.3 * flashIntensity})`;
+        } else if(timeLeft <= 10) {
+            document.getElementById('time-val').style.color = 'red';
+            document.getElementById('game-container').style.boxShadow = 'none';
+        } else {
+            document.getElementById('game-container').style.boxShadow = 'none';
+        }
 
         // Mission timer - ภารกิจสัมผัสเกิดตามเวลาที่เหมาะสม
         // เงื่อนไข: 
@@ -948,6 +1111,12 @@
         if (timestamp - itemSpawnTimer > 15000) {
             spawnItem();
             itemSpawnTimer = timestamp;
+        }
+
+        // Magic Wand spawn - ทุก 60 วินาที (ไอเทมพิเศษ)
+        if (timestamp - magicWandTimer > 60000) {
+            spawnMagicWand();
+            magicWandTimer = timestamp;
         }
 
         if(timestamp - spawnTimer > 1200) {
@@ -1183,7 +1352,11 @@
         const y = item.y;
         const emoji = item.realEmoji;
         
-        if (type === 'lightning') {
+        if (type === 'magicwand') {
+            // เปลี่ยนคำทั้งหมดให้ตรงกับภารกิจ
+            transformAllEnemies();
+            particles.push({x, y, text: `${emoji} เปลี่ยนคำทั้งหมด!`, color: "#FF1493", life: 1.5, size: 35});
+        } else if (type === 'lightning') {
             lightningCount++;
             particles.push({x, y, text: `${emoji} สายฟ้า!`, color: "#FFD700", life: 1});
         } else if (type === 'time') {
@@ -1206,6 +1379,35 @@
         }
         
         updatePowerUpButtons();
+    }
+
+    function transformAllEnemies() {
+        // เปลี่ยนคำทั้งหมดให้ตรงกับภารกิจปัจจุบัน
+        enemies.forEach(e => {
+            if (currentMissionType === 'karu') {
+                // เปลี่ยนเป็นคำครุทั้งหมด
+                e.word = KARU_WORDS[Math.floor(Math.random() * KARU_WORDS.length)];
+                e.isCorrect = true;
+                e.type = 'karu';
+                e.color = '#555';
+            } else if (currentMissionType === 'lahu') {
+                // เปลี่ยนเป็นคำลหุทั้งหมด
+                e.word = LAHU_WORDS[Math.floor(Math.random() * LAHU_WORDS.length)];
+                e.isCorrect = true;
+                e.type = 'lahu';
+                e.color = '#f0f0f0';
+            } else if (currentMissionType === 'sampus') {
+                // เปลี่ยนเป็นคำสัมผัสทั้งหมด
+                if (currentCorrectWords.length > 0) {
+                    e.word = currentCorrectWords[Math.floor(Math.random() * currentCorrectWords.length)];
+                    e.isCorrect = true;
+                    e.type = 'sampus';
+                    e.color = '#FFE5B4';
+                }
+            }
+        });
+        
+        playSound('sampusStart'); // เสียงพิเศษ
     }
 
     function usePowerUp(type) {
@@ -1339,6 +1541,35 @@
         }
     }
 
+    function fadeToGameOver() {
+        gameState = 'fading';
+        
+        // Fade effect
+        const fadeOverlay = document.createElement('div');
+        fadeOverlay.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: black;
+            opacity: 0;
+            transition: opacity 1s ease;
+            z-index: 99;
+            pointer-events: none;
+        `;
+        document.body.appendChild(fadeOverlay);
+        
+        setTimeout(() => {
+            fadeOverlay.style.opacity = '1';
+        }, 10);
+        
+        setTimeout(() => {
+            endGame();
+            document.body.removeChild(fadeOverlay);
+        }, 1000);
+    }
+
     function endGame() {
         gameState = 'gameover';
         
@@ -1346,13 +1577,56 @@
         bgMusic.pause();
         bgMusic.currentTime = 0;
         
+        // แสดงผลลัพธ์
+        const playerName = playerData.isRegistered 
+            ? `${playerData.title}${playerData.firstname} ${playerData.lastname}`
+            : playerData.firstname;
+        
         document.getElementById('game-ui').classList.add('hidden');
-        document.getElementById('end-name').innerText = document.getElementById('p-name').value;
+        document.getElementById('end-name').innerText = playerName;
         document.getElementById('end-score').innerText = score;
         document.getElementById('end-karu').innerText = karuCollected;
         document.getElementById('end-lahu').innerText = lahuCollected;
         document.getElementById('end-sampus').innerText = sampusCollected;
         document.getElementById('game-over-screen').classList.remove('hidden');
+        
+        // บันทึกข้อมูลถ้าลงทะเบียน
+        if (playerData.isRegistered) {
+            saveToGoogleSheet();
+        }
+    }
+
+    function saveToGoogleSheet() {
+        const data = {
+            title: playerData.title,
+            firstname: playerData.firstname,
+            lastname: playerData.lastname,
+            studentNumber: playerData.studentNumber,
+            grade: playerData.grade,
+            playTime: playerData.playTime,
+            score: score,
+            karuCollected: karuCollected,
+            lahuCollected: lahuCollected,
+            sampusCollected: sampusCollected,
+            timestamp: new Date().toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' })
+        };
+        
+        console.log("Saving to Google Sheet:", data);
+        
+        fetch('https://script.google.com/macros/s/AKfycbxxguuT7R2awbdbGD8Six3fM-aI3VGkzI83K6OdjW5NwGWy-jX_7kekf0zhYMLVv8xu/exec', {
+            method: 'POST',
+            mode: 'no-cors',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data)
+        })
+        .then(() => {
+            console.log('Data sent successfully');
+        })
+        .catch(error => {
+            console.error('Error saving data:', error);
+        });
     }
 
     window.addEventListener('mousemove', updateMousePosition);
