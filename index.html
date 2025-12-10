@@ -294,61 +294,19 @@
             font-style: italic;
         }
 
-        /* Visitor Counter */
-        .visitor-counter {
-            position: fixed;
-            bottom: 20px;
-            left: 20px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 12px 20px;
-            border-radius: 30px;
-            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            font-weight: 600;
-            z-index: 999;
-            animation: slideInLeft 0.5s ease-out;
-        }
-
-        .visitor-counter .icon {
-            font-size: 1.2rem;
-            animation: pulse 2s infinite;
-        }
-
-        .visitor-counter .count {
-            font-size: 1.1rem;
-            min-width: 60px;
+        /* Visitor Counter - Simple Text */
+        .visitor-text {
             text-align: center;
-            background: rgba(255, 255, 255, 0.2);
-            padding: 4px 12px;
-            border-radius: 15px;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #eee;
+            color: #999;
+            font-size: 0.85rem;
         }
 
-        @keyframes slideInLeft {
-            from {
-                transform: translateX(-100px);
-                opacity: 0;
-            }
-            to {
-                transform: translateX(0);
-                opacity: 1;
-            }
-        }
-
-        @media (max-width: 768px) {
-            .visitor-counter {
-                bottom: 10px;
-                left: 10px;
-                padding: 8px 15px;
-                font-size: 0.9rem;
-            }
-            
-            .visitor-counter .count {
-                min-width: 50px;
-                font-size: 1rem;
-            }
+        .visitor-text .count {
+            font-weight: 600;
+            color: #667eea;
         }
 
         input {
@@ -517,6 +475,10 @@
             <button class="btn" style="background: linear-gradient(45deg, #2196F3, #1976D2); margin-bottom: 10px;" onclick="showItemGuide()">📖 คู่มือไอเทม</button>
             <button class="btn" onclick="startGameWithRegister()">เริ่มการแข่งขัน!</button>
             <button class="btn" style="background: linear-gradient(45deg, #9E9E9E, #757575); margin-top: 10px;" onclick="backToLogin()">← กลับ</button>
+            
+            <div class="visitor-text">
+                ผู้เข้าชม: <span class="count" id="visitor-count">...</span> ครั้ง
+            </div>
         </div>
     </div>
 
@@ -602,13 +564,6 @@
             <button class="btn" onclick="closeItemGuide()">เข้าใจแล้ว เริ่มเกม!</button>
         </div>
     </div>
-</div>
-
-<!-- Visitor Counter -->
-<div class="visitor-counter">
-    <span class="icon">👁️</span>
-    <span>ผู้เข้าชม:</span>
-    <span class="count" id="visitor-count">...</span>
 </div>
 
 <script>
