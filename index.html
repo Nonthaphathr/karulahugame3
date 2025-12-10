@@ -6,7 +6,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>อินทรวิเชียรเกม : ฟาดสายฟ้าครุ-ลหุ</title>
-    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700&family=Prompt:wght@600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         * { 
             margin: 0; 
@@ -28,7 +28,7 @@
             overflow: hidden;
             position: fixed;
             background-color: #000;
-            font-family: 'Prompt', sans-serif;
+            font-family: 'Kanit', sans-serif;
             touch-action: none;
         }
 
@@ -104,7 +104,7 @@
             padding: 5px 12px; 
             border-radius: 15px; 
             cursor: pointer;
-            font-family: 'Prompt', sans-serif;
+            font-family: 'Kanit', sans-serif;
             font-size: 0.9rem;
         }
 
@@ -403,6 +403,10 @@
                 ⭐
                 <div class="power-up-count" id="double-count">0</div>
             </button>
+            <button class="power-up-btn magicwand" id="magicwand-btn" onclick="usePowerUp('magicwand')" title="ไม้กายสิทธิ์">
+                🪄
+                <div class="power-up-count" id="magicwand-count">0</div>
+            </button>
         </div>
     </div>
 
@@ -544,49 +548,98 @@
 </div>
 
 <script>
-    /* ==========================================================================
-       SOUND EFFECTS
+        /* ==========================================================================
+       SOUND EFFECTS (Web Audio API for iOS compatibility)
        ========================================================================== */
-    const startGameSound = new Audio('https://nonthaphathr.github.io/uploadimg/karulahugame3-1.mp3');
-    const shootSound = new Audio('https://nonthaphathr.github.io/uploadimg/karulahugame3-2.mp3');
-    const lightningSpecialSound = new Audio('https://nonthaphathr.github.io/uploadimg/karulahugame3-3.mp3');
-    const bgMusic = new Audio('https://nonthaphathr.github.io/uploadimg/karulahugame3-4.mp3');
+    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    const audioBuffers = {};
+    let isAudioReady = false;
     
-    startGameSound.volume = 0.5;
-    shootSound.volume = 0.4;
-    lightningSpecialSound.volume = 0.5;
+    const AUDIO_FILES = {
+        startGame: 'https://nonthaphathr.github.io/uploadimg/karulahugame3-1.mp3',
+        shoot: 'https://nonthaphathr.github.io/uploadimg/karulahugame3-2.mp3',
+        lightningSpecial: 'https://nonthaphathr.github.io/uploadimg/karulahugame3-3.mp3',
+        bgMusic: 'https://nonthaphathr.github.io/uploadimg/karulahugame3-4.mp3'
+    };
+    
+    // Background music (ใช้ HTML5 Audio เพราะต้อง loop)
+    const bgMusic = new Audio(AUDIO_FILES.bgMusic);
     bgMusic.loop = true;
     bgMusic.volume = 0.3;
     
+    // Preload audio buffers
+    async function preloadAudio() {
+        const loadPromises = [];
+        for (const [key, url] of Object.entries(AUDIO_FILES)) {
+            if (key === 'bgMusic') continue;
+            
+            const promise = fetch(url)
+                .then(response => response.arrayBuffer())
+                .then(arrayBuffer => audioContext.decodeAudioData(arrayBuffer))
+                .then(audioBuffer => {
+                    audioBuffers[key] = audioBuffer;
+                })
+                .catch(err => console.error(\`Error loading \${key}:\`, err));
+            
+            loadPromises.push(promise);
+        }
+        
+        await Promise.all(loadPromises);
+        isAudioReady = true;
+        console.log('Audio preloaded successfully');
+    }
+    
     function playSound(type) {
         try {
-            if (type === 'startGame') {
-                startGameSound.currentTime = 0;
-                startGameSound.play().catch(() => {});
-            } else if (type === 'bgMusic') {
-                bgMusic.play().catch(() => {});
-            } else if (type === 'shoot') {
-                shootSound.currentTime = 0;
-                shootSound.play().catch(() => {});
-            } else if (type === 'lightningSpecial') {
-                lightningSpecialSound.currentTime = 0;
-                lightningSpecialSound.play().catch(() => {});
-            } else {
-                const audio = new Audio();
-                if (type === 'correct') {
-                    audio.src = 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuBzvLZiTYIG2m98OScTgwOUKzn77djGwU7k9n0zHksBSN0yPDdkUELEl+16+qnVRMKSKDh8r9vIgUs';
-                } else if (type === 'wrong') {
-                    audio.src = 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACAgoaGZ1lZZI2lnIJaLCZXk8POpVoQAy6M0ejAZyADJXnB5dN+LwYad7fr3pE9CQ9apu3srE0PBz+W3/C9aB0EJ4HM8NiEMwYZZ7ns4JhKCgtQqOLusmAbBDiQ1fDKdykEI3XG79yNPQkSXbPp6aVSEQhEnt/wvWoeBS6AzfDYiDUGG2q98OKbTQsN';
-                } else if (type === 'item') {
-                    audio.src = 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACDh4yJb2Rid52ysp1vQDlnq9vkr2YdBkGf4PTHdjAHLoPS+N+SRQwdcL7x6KJYEw1Wq+jzwm4oBTKJ1PTSgTgJHnHB8+qlWRQOXbTr9MZ2MAc0jNn13pBBCxVhtuvvsmkcBT2U2/TOejEGJnfJ8d+TPw';
-                } else if (type === 'sampusStart') {
-                    audio.src = 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACFiY6LcmVlfqOzs6B1RDxqr9/osnAbBkakyPjNfTQLMone+uKVSQ8hc8L17KdbFg9bsuz3yHg0CD+X3vrlplwYEl219fidfkAMJIHN9eC';
-                }
-                audio.volume = 0.3;
-                audio.play().catch(() => {});
+            // Resume AudioContext (สำหรับ iOS)
+            if (audioContext.state === 'suspended') {
+                audioContext.resume();
             }
-        } catch (e) {}
+            
+            if (type === 'bgMusic') {
+                bgMusic.play().catch(() => {});
+                return;
+            }
+            
+            // ใช้ Web Audio API สำหรับเสียงสั้นๆ
+            if (isAudioReady && audioBuffers[type]) {
+                const source = audioContext.createBufferSource();
+                source.buffer = audioBuffers[type];
+                
+                const gainNode = audioContext.createGain();
+                if (type === 'shoot') {
+                    gainNode.gain.value = 0.4;
+                } else if (type === 'startGame') {
+                    gainNode.gain.value = 0.5;
+                } else if (type === 'lightningSpecial') {
+                    gainNode.gain.value = 0.5;
+                } else {
+                    gainNode.gain.value = 0.3;
+                }
+                
+                source.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                source.start(0);
+            } else {
+                // Fallback สำหรับเสียง beep
+                if (type === 'correct' || type === 'wrong' || type === 'item') {
+                    const audio = new Audio();
+                    if (type === 'correct') {
+                        audio.src = 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuBzvLZiTYIG2m98OScTgwOUKzn77djGwU7k9n0zHksBSN0yPDdkUELEl+16+qnVRMKSKDh8r9vIgUs';
+                    } else if (type === 'wrong') {
+                        audio.src = 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACAgoaGZ1lZZI2lnIJaLCZXk8POpVoQAy6M0ejAZyADJXnB5dN+LwYad7fr3pE9CQ9apu3srE0PBz+W3/C9aB0EJ4HM8NiEMwYZZ7ns4JhKCgtQqOLusmAbBDiQ1fDKdykEI3XG79yNPQkSXbPp6aVSEQhEnt/wvWoeBS6AzfDYiDUGG2q98OKbTQsN';
+                    } else if (type === 'item') {
+                        audio.src = 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACDh4yJb2Rid52ysp1vQDlnq9vkr2YdBkGf4PTHdjAHLoPS+N+SRQwdcL7x6KJYEw1Wq+jzwm4oBTKJ1PTSgTgJHnHB8+qlWRQOXbTr9MZ2MAc0jNn13pBBCxVhtuvvsmkcBT2U2/TOejEGJnfJ8d+TPw';
+                    }
+                    audio.volume = 0.3;
+                    audio.play().catch(() => {});
+                }
+            }
+        } catch (e) {
+            console.error('Error playing sound:', e);
+        }
     }
+
 
     /* ==========================================================================
        DATA
@@ -665,6 +718,7 @@
     let lightningCount = 0;
     let shieldCount = 0;
     let doubleCount = 0;
+    let magicWandCount = 0; // ไม้กายสิทธิ์
     
     // Active effects
     let activeEffects = {
@@ -689,6 +743,7 @@
     let missionTimer = 0;
     let itemSpawnTimer = 0;
     let magicWandTimer = 0; // สำหรับไอเทมพิเศษ
+    let karuLahuTimer = 0; // สำหรับสลับครุ-ลหุทุก 30 วินาที
 
     function resizeCanvas() {
         const dpr = window.devicePixelRatio || 1;
@@ -817,6 +872,7 @@
         missionTimer = performance.now();
         itemSpawnTimer = performance.now();
         magicWandTimer = performance.now(); // เริ่มนับเวลาไอเทม magic wand
+        karuLahuTimer = performance.now(); // เริ่มนับเวลาสลับครุ-ลหุ
         requestAnimationFrame(gameLoop);
         
         // เล่นเสียงเริ่มเกม (ครั้งเดียว) แล้วรอ 4 วิก่อนเล่นเพลงพื้นหลัง
@@ -1093,6 +1149,20 @@
             document.getElementById('game-container').style.boxShadow = 'none';
         }
 
+        // สลับภารกิจครุ-ลหุทุก 30 วินาที (ยกเว้นตอนภารกิจสัมผัส)
+        if (!sampusMissionActive && timestamp - karuLahuTimer > 30000) {
+            if (currentMissionType === 'karu') {
+                currentMissionType = 'lahu';
+                document.getElementById('mission-label').innerText = 'ภารกิจ: เก็บคำลหุ';
+                document.getElementById('target-word-display').innerText = 'ลหุ ⚪';
+            } else if (currentMissionType === 'lahu') {
+                currentMissionType = 'karu';
+                document.getElementById('mission-label').innerText = 'ภารกิจ: เก็บคำครุ';
+                document.getElementById('target-word-display').innerText = 'ครุ ⚫';
+            }
+            karuLahuTimer = timestamp;
+        }
+
         // Mission timer - ภารกิจสัมผัสเกิดตามเวลาที่เหมาะสม
         // เงื่อนไข: 
         // 1. ต้องเล่นไปแล้วอย่างน้อย 45 วินาที
@@ -1113,8 +1183,8 @@
             itemSpawnTimer = timestamp;
         }
 
-        // Magic Wand spawn - ทุก 60 วินาที (ไอเทมพิเศษ)
-        if (timestamp - magicWandTimer > 60000) {
+        // Magic Wand spawn - ทุก 50 วินาที (ไอเทมพิเศษ)
+        if (timestamp - magicWandTimer > 50000) {
             spawnMagicWand();
             magicWandTimer = timestamp;
         }
@@ -1353,9 +1423,9 @@
         const emoji = item.realEmoji;
         
         if (type === 'magicwand') {
-            // เปลี่ยนคำทั้งหมดให้ตรงกับภารกิจ
-            transformAllEnemies();
-            particles.push({x, y, text: `${emoji} เปลี่ยนคำทั้งหมด!`, color: "#FF1493", life: 1.5, size: 35});
+            // เก็บไว้กดใช้ (เหมือนสายฟ้า)
+            magicWandCount++;
+            particles.push({x, y, text: `${emoji} ไม้กายสิทธิ์!`, color: "#FF1493", life: 1.5, size: 35});
         } else if (type === 'lightning') {
             lightningCount++;
             particles.push({x, y, text: `${emoji} สายฟ้า!`, color: "#FFD700", life: 1});
@@ -1459,6 +1529,18 @@
                 life: 1
             });
             playSound('item');
+        } else if (type === 'magicwand' && magicWandCount > 0) {
+            magicWandCount--;
+            transformAllEnemies();
+            particles.push({
+                x: player.x, 
+                y: player.y - 100, 
+                text: "🪄 เปลี่ยนคำทั้งหมด!", 
+                color: "#FF1493", 
+                life: 1.5,
+                size: 35
+            });
+            playSound('lightningSpecial');
         }
         
         updatePowerUpButtons();
@@ -1468,10 +1550,12 @@
         document.getElementById('lightning-count').innerText = lightningCount;
         document.getElementById('shield-count').innerText = shieldCount;
         document.getElementById('double-count').innerText = doubleCount;
+        document.getElementById('magicwand-count').innerText = magicWandCount;
         
         document.getElementById('lightning-btn').classList.toggle('disabled', lightningCount <= 0);
         document.getElementById('shield-btn').classList.toggle('disabled', shieldCount <= 0);
         document.getElementById('double-btn').classList.toggle('disabled', doubleCount <= 0);
+        document.getElementById('magicwand-btn').classList.toggle('disabled', magicWandCount <= 0);
     }
 
     function updateEffectDisplay() {
@@ -1634,7 +1718,10 @@
     window.addEventListener('mousedown', shoot);
     window.addEventListener('touchstart', shoot, { passive: false });
 
-    loadImages(() => console.log("🎮 อินทรวิเชียรเกม : ฟาดสายฟ้าครุ-ลหุ พร้อมแล้ว!"));
+    loadImages(() => {
+        console.log("🎮 อินทรวิเชียรเกม : ฟาดสายฟ้าครุ-ลหุ พร้อมแล้ว!");
+        preloadAudio(); // Preload เสียงสำหรับ iOS
+    });
 
 </script>
 </body>
