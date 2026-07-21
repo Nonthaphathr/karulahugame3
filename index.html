@@ -1825,6 +1825,7 @@
 
     function saveToGoogleSheet() {
         const data = {
+            game: 'game3',
             title: playerData.title,
             firstname: playerData.firstname,
             lastname: playerData.lastname,
@@ -1838,7 +1839,7 @@
             timestamp: new Date().toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' })
         };
         
-        fetch('https://script.google.com/macros/s/AKfycbxxguuT7R2awbdbGD8Six3fM-aI3VGkzI83K6OdjW5NwGWy-jX_7kekf0zhYMLVv8xu/exec', {
+        fetch('https://script.google.com/macros/s/AKfycbz6jkDTPwUEMmAwjOvDvOdIg5L9e94a8Kl9BB5DT7K6LnZSiRJE-1nHtD9WjuBUK6HYfA/exec', {
             method: 'POST',
             mode: 'no-cors',
             headers: {
